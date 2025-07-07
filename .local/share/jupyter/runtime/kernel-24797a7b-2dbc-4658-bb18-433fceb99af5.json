@@ -1,0 +1,13 @@
+{
+  "shell_port": 49053,
+  "iopub_port": 45183,
+  "stdin_port": 52791,
+  "control_port": 60583,
+  "hb_port": 37455,
+  "ip": "127.0.0.1",
+  "key": "e37d1b06-ca56830ef8a335b33d03716f",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "python3",
+  "jupyter_session": "/home/jovyan/siem5realtime.ipynb"
+}
