@@ -1,0 +1,13 @@
+{
+  "shell_port": 42595,
+  "iopub_port": 59531,
+  "stdin_port": 37853,
+  "control_port": 46257,
+  "hb_port": 40979,
+  "ip": "127.0.0.1",
+  "key": "aa2589a4-4a97bb70ca8d064ab0e93802",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "python3",
+  "jupyter_session": "/home/jovyan/streamlitProject.ipynb"
+}
