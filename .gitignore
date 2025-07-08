@@ -2,3 +2,7 @@ __pycache__/
 __assets__/
 __access_logs.db__/
 .env
+
+# Ignore heavy notebooks
+siem5realtime.ipynb
+streamlitProject.ipynb
