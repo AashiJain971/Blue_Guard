@@ -109,54 +109,57 @@
 # In[1]:
 
 
-# #setting up automated updation of ip vs cuntry geolite databse
-# import os
-# import tarfile
-# import requests
+from dotenv import load_dotenv; load_dotenv()  # reads .env
+import os                                      # lets us call os.getenv
 
-# class GeoLite2Updater:
-#     def __init__(self, license_key, edition='GeoLite2-Country', extract_dir='./resources/geoliteCountry'):
-#         self.license_key = license_key
-#         self.edition = edition
-#         self.extract_dir = extract_dir
-#         self.download_path = f'{edition.lower()}.tar.gz'
-#         self.final_path = os.path.join(self.extract_dir, f'{edition}.mmdb')
-#         self.download_url = f'https://download.maxmind.com/app/geoip_download?edition_id={edition}&license_key={license_key}&suffix=tar.gz'
+#setting up automated updation of ip vs cuntry geolite databse
+import os
+import tarfile
+import requests
 
-#     def create_extract_dir(self):
-#         os.makedirs(self.extract_dir, exist_ok=True)
+class GeoLite2Updater:
+    def __init__(self, license_key, edition='GeoLite2-Country', extract_dir='./resources/geoliteCountry'):
+        self.license_key = license_key
+        self.edition = edition
+        self.extract_dir = extract_dir
+        self.download_path = f'{edition.lower()}.tar.gz'
+        self.final_path = os.path.join(self.extract_dir, f'{edition}.mmdb')
+        self.download_url = f'https://download.maxmind.com/app/geoip_download?edition_id={edition}&license_key={license_key}&suffix=tar.gz'
 
-#     def download_database(self):
-#         print("📥 Downloading latest GeoLite2 database...")
-#         response = requests.get(self.download_url, stream=True)
-#         with open(self.download_path, 'wb') as f:
-#             for chunk in response.iter_content(chunk_size=8192):
-#                 f.write(chunk)
+    def create_extract_dir(self):
+        os.makedirs(self.extract_dir, exist_ok=True)
 
-#     def extract_database(self):
-#         print("📦 Extracting database...")
-#         with tarfile.open(self.download_path, 'r:gz') as tar:
-#             for member in tar.getmembers():
-#                 if member.name.endswith('.mmdb'):
-#                     tar.extract(member, path=self.extract_dir)
-#                     extracted_path = os.path.join(self.extract_dir, member.name)
-#                     os.renames(extracted_path, self.final_path)
+    def download_database(self):
+        print("📥 Downloading latest GeoLite2 database...")
+        response = requests.get(self.download_url, stream=True)
+        with open(self.download_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-#     def clean_up(self):
-#         if os.path.exists(self.download_path):
-#             os.remove(self.download_path)
+    def extract_database(self):
+        print("📦 Extracting database...")
+        with tarfile.open(self.download_path, 'r:gz') as tar:
+            for member in tar.getmembers():
+                if member.name.endswith('.mmdb'):
+                    tar.extract(member, path=self.extract_dir)
+                    extracted_path = os.path.join(self.extract_dir, member.name)
+                    os.renames(extracted_path, self.final_path)
 
-#     def update_database(self):
-#         self.create_extract_dir()
-#         self.download_database()
-#         self.extract_database()
-#         self.clean_up()
-#         print(f"✅ GeoLite2 database updated and ready at: {self.final_path}")
+    def clean_up(self):
+        if os.path.exists(self.download_path):
+            os.remove(self.download_path)
 
-# #using class
-# LICENSE_KEY = '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'  # Replace with your real key
-# geo_updater = GeoLite2Updater(license_key=LICENSE_KEY)
-# geo_updater.update_database()
+    def update_database(self):
+        self.create_extract_dir()
+        self.download_database()
+        self.extract_database()
+        self.clean_up()
+        print(f"✅ GeoLite2 database updated and ready at: {self.final_path}")
+
+#using class
+LICENSE_KEY = os.getenv("LICENSE_KEY")  # Replace with your real key
+geo_updater = GeoLite2Updater(license_key=LICENSE_KEY)
+geo_updater.update_database()
 
 
 
@@ -617,17 +620,20 @@ class MultiIPDDoSDetector:
 # In[168]:
 
 
+from dotenv import load_dotenv; load_dotenv()  # reads .env
+import os                                      # lets us call os.getenv
+
 # #configuration
 # Updated Config class with Together.ai API
 class Config:
     DB_PATH = "access_logs.db"
-    OPENAI_API_KEY = "6d5f9d8edb25a1743e5272f75f52a818ead6a95635e57b122118fb82d754c697"
-    SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
-    SMTP_SERVER = "smtp.gmail.com"
-    SMTP_PORT = 587
-    EMAIL_SENDER = "aashij971@gmail.com"
-    EMAIL_PASSWORD = "bbff hzuj lczj bhmy"
-    EMAIL_RECEIVER = "aashijainbid@gmail.com"
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+    SMTP_SERVER = os.getenv("SMTP_SERVER") 
+    SMTP_PORT = int(os.getenv("SMTP_PORT"))
+    EMAIL_SENDER   = os.getenv("EMAIL_SENDER")
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+    EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 
 
 
@@ -815,12 +821,14 @@ class IPContextFetcher:
 # #propmt generator and gen ai interface
 # Updated GenAIExplainer using Together.ai for LLaMA models
 import requests
+from dotenv import load_dotenv; load_dotenv()  # reads .env
+import os                                      # lets us call os.getenv
 
 class GenAIExplainer:
     def __init__(self, api_key, model_name="meta-llama/Llama-3-70b-chat-hf"):
         self.api_key = api_key
         self.model_name = model_name
-        self.api_url = "https://api.together.xyz/v1/chat/completions"
+        self.api_url = os.getenv("TOGETHER_API_URL")
 
     def generate_prompt(self, data):
         hourly_summary = "\n".join([f"Hour {row['hour']}: {row['category']}" for row in data['categories_by_hour']])
@@ -1266,7 +1274,7 @@ def simulate_realtime_stream(pipeline, interval: int = 1):
 # simulate_one_batch(pipeline)
 
 
-# In[4]:
+# In[1]:
 
 
 #pinting access_logs.db to verify
@@ -2649,6 +2657,34 @@ def refresh_and_detect():
 #         # ➌  count IDs in logs
 #         total_ids = conn.execute("SELECT COUNT(id) FROM logs;").fetchone()[0]
 #         print(f"\n🧮 Total rows in logs: {total_ids}")
+
+
+# In[2]:
+
+
+import sqlite3
+
+def list_tables_and_columns(db_path="access_logs.db"):
+    """
+    Print every table name plus its column list for the given SQLite DB.
+    """
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+
+        # fetch all user‑defined tables
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+        tables = [row[0] for row in cur.fetchall()]
+
+        for tbl in tables:
+            # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+            cur.execute(f"PRAGMA table_info({tbl});")
+            cols = [row[1] for row in cur.fetchall()]
+            print(f"📂 {tbl}")
+            print("   ↳ columns:", ", ".join(cols))
+            print()
+
+if __name__ == "__main__":
+    list_tables_and_columns("access_logs.db")
 
 
 # In[ ]:

@@ -1141,7 +1141,6 @@ def render_reports_tab():
 
 # To use in your Streamlit app, call render_reports_tab() in your main page logic.
 
-
 render_reports_tab()
 # --- System ---
 with tabs[8]:

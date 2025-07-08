@@ -1,3 +1,4 @@
 __pycache__/
 __assets__/
 __access_logs.db__/
+.env

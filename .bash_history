@@ -23,3 +23,37 @@ git commit -m "First commit from Docker container"
 git push -u origin main
 git init
 streamlit run streamlitProject.py --server.port 1500 --server.address 0.0.0.0
+git add .
+git commit -m "first commit from docker"
+git push origin main
+git pull --rebase origin main
+git status
+git rebase --continue
+git push origin main
+streamlit run streamlitProject.py --server.port 1500 --server.address 0.0.0.0
+git init
+git add .
+git remote add origin https://github.com/AashiJain971/Blue_Guard.git
+git commit -m "first commit from docker container"
+git push origin main
+git branch
+git branch -m master main
+git push origin main
+git push prigin master
+git push origin master
+git branch
+git push origin main
+git push origin main
+git pull origin main
+git pull --rebase origin main
+git commit -m "first commit from docker"
+git pull --rebase origin main
+git commit -m "first commit from docker"
+git add .
+git commit -m "first commit from docker"
+git pull --rebase origin main
+git add .
+git commit -m "first commit from docker"
+git pull --rebase origin main
+git push origin main
+streamlit run streamlitProject.py --server.port 1500 --server.address 0.0.0.0
