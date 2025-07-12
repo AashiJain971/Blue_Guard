@@ -6,3 +6,4 @@ __access_logs.db__/
 # Ignore heavy notebooks
 siem5realtime.ipynb
 streamlitProject.ipynb
+.bash_history
