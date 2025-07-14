@@ -1558,8 +1558,11 @@ def render_reports_tab():
     report_start_dt = IST.localize(datetime.combine(report_range[0], time.min))
     report_end_dt = IST.localize(datetime.combine(report_range[1], time.max))
 
-    report_start_str = report_start_dt.strftime("%Y-%m-%d %H:%M:%S")
-    report_end_str   = report_end_dt.strftime("%Y-%m-%d %H:%M:%S")
+    # report_start_str = report_start_dt.strftime("%Y-%m-%d %H:%M:%S")
+    # report_end_str   = report_end_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    report_start_str = report_start_dt.isoformat()
+    report_end_str   = report_end_dt.isoformat()
 
 
 
