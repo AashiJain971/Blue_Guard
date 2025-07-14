@@ -1539,19 +1539,35 @@ def render_reports_tab():
     IST = pytz.timezone("Asia/Kolkata")
 
     # 📅 Date input from UI (you can change default dates)
-    report_range = st.date_input("🕒 Select Report Time Range", [datetime(2025, 7, 10), datetime(2025, 7, 13)])
+    # report_range = st.date_input("🕒 Select Report Time Range", [datetime(2025, 7, 10), datetime(2025, 7, 13)])
+    report_range = st.date_input(
+    "🕒 Select Report Time Range",
+    value=(GLOBAL_MIN.date(), GLOBAL_MAX.date()),  # ✅ full span of your data
+    min_value=GLOBAL_MIN.date(),
+    max_value=GLOBAL_MAX.date()
+    )
+
 
     # Normalize time range (start of day to end of day in IST)
     report_start_dt = IST.localize(datetime.combine(report_range[0], time.min))
     report_end_dt = IST.localize(datetime.combine(report_range[1], time.max))
 
-    report_start = report_start_dt.isoformat()
-    report_end = report_end_dt.isoformat()
+    # report_start = report_start_dt.isoformat()
+    # report_end = report_end_dt.isoformat()
+    # Define both datetime and string versions
+    report_start_dt = IST.localize(datetime.combine(report_range[0], time.min))
+    report_end_dt = IST.localize(datetime.combine(report_range[1], time.max))
+
+    report_start_str = report_start_dt.strftime("%Y-%m-%d %H:%M:%S")
+    report_end_str   = report_end_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
 
 
     # Debug print
     st.write("🕒 Report Time Range")
-    st.code(f"Start: {report_start}\nEnd  : {report_end}")
+    st.code(f"Start: {report_start_str}\nEnd  : {report_end_str}")
+
 
 
     # # Date range selector
@@ -1584,7 +1600,7 @@ def render_reports_tab():
                 WHERE time BETWEEN ? AND ?
                 GROUP BY country, method, status
                 ORDER BY requests DESC
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # Suspicious IPs
             tables["Suspicious IPs"] = _run_sql("""
@@ -1592,7 +1608,7 @@ def render_reports_tab():
                 FROM ip_suspicious
                 WHERE time BETWEEN ? AND ?
                 ORDER BY detection_count DESC, time DESC
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # Blocked IPs
             tables["Blocked IPs"] = _run_sql("""
@@ -1601,7 +1617,7 @@ def render_reports_tab():
                 FROM blocked_log
                 WHERE backend_blocked_at BETWEEN ? AND ?
                 ORDER BY detection_count DESC
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # Advanced logs
             tables["Advanced Behavioral Analysis"] = _run_sql("""
@@ -1610,7 +1626,7 @@ def render_reports_tab():
                 FROM advanced_logs
                 WHERE first_time_of_access BETWEEN ? AND ?
                 ORDER BY req_per_min DESC
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # DDoS incidents
             tables["DDoS Incidents"] = _run_sql("""
@@ -1634,7 +1650,7 @@ def render_reports_tab():
                 WHERE time BETWEEN ? AND ?
                 GROUP BY hour
                 ORDER BY hour
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # Country analysis
             tables["Geographical Distribution"] = _run_sql("""
@@ -1645,7 +1661,7 @@ def render_reports_tab():
                 WHERE time BETWEEN ? AND ?
                 GROUP BY country
                 ORDER BY requests DESC
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             # IP categorization from ip_eachHour_category
             tables["IP Behavioral Categories"] = _run_sql("""
@@ -1836,7 +1852,7 @@ def render_reports_tab():
                 GROUP BY agent
                 ORDER BY count DESC
                 LIMIT 100
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             if not platform_df.empty:
                 # Classify common platforms
@@ -1894,7 +1910,7 @@ def render_reports_tab():
             GROUP BY url
             ORDER BY requests DESC
             LIMIT 15
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             if not top_urls.empty:
                 fig_top_urls = px.bar(top_urls, x='url', y='requests', title='Top 15 Requested URLs',
@@ -1909,7 +1925,7 @@ def render_reports_tab():
             size_df = _run_sql("""
             SELECT size FROM logs
             WHERE time BETWEEN ? AND ?
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             if not size_df.empty:
                 fig_sizes = px.histogram(size_df, x='size', nbins=30, title='Request Size Distribution (Bytes)',
@@ -1928,7 +1944,7 @@ def render_reports_tab():
             GROUP BY agent
             ORDER BY count DESC
             LIMIT 10
-            """, params=[report_start, report_end])
+            """,params=[report_start_str, report_end_str])
 
             if not agent_df.empty:
                 fig_agents = px.bar(
