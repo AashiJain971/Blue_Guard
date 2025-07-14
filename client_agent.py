@@ -3,7 +3,7 @@
 
 # In[ ]:
 
-
+import sqlite3
 import os
 import platform
 import subprocess, shlex
@@ -19,6 +19,8 @@ from zoneinfo import ZoneInfo
 from datetime import datetime
 import random
 import re
+import threading
+import time
 
 IST = ZoneInfo("Asia/Kolkata")          # reuse the same object everywhere
 
@@ -262,31 +264,32 @@ def _post_single(log: dict) -> None:
 def stream_access_log(file_path: str = LOG_FILE_PATH,
                       tail_from_end: bool = False) -> None:
     """
-    • If `tail_from_end` is False  →  start at the beginning (re‑ingest whole file)
-    • If `tail_from_end` is True   →  jump to EOF and only watch NEW lines
+    • If `tail_from_end` is False  → start at beginning and stop after sending all logs
+    • If `tail_from_end` is True   → does nothing (for now, as one-time mode only makes sense with False)
     """
     if not os.path.exists(file_path):
         print(f"❌ File not found → {file_path}")
         return
 
-    with open(file_path, "r", encoding="utf‑8", errors="ignore") as f:
-        if tail_from_end:                         # original behaviour
-            f.seek(0, os.SEEK_END)
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        if tail_from_end:
+            print("⚠️ tail_from_end=True has no effect in one-time mode.")
+            return
         else:
-            print(f"📂 Replaying the entire file once → {file_path}")
+            print(f"📂 Sending log lines once → {file_path}")
 
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(0.1)
+        for line in f:
+            if not line.strip():
                 continue
+            try:
+                parsed = parse_log_line(line)
+                if parsed:
+                    _post_single(parsed)
+            except Exception as e:
+                print(f"⚠️ Error parsing or sending line: {e}")
 
-            parsed = parse_log_line(line)
-            if not parsed:
-                continue
+    print("✅ Finished sending all logs once.")
 
-            _post_single(parsed)      # ① send
-            fetch_and_block()         # ② block immediately
 
 
 
@@ -329,6 +332,28 @@ def send_ddos_burst(ip_prefix: str = "10.0.1.",
         print("❌ Burst send error:", e)
 
 # ──────────────── 3⃣  SENDER ─────────────────
+def send_benign_log(ip: str) -> None:
+    now_ist = datetime.now(IST).isoformat()
+    urls = ["/", "/about", "/products", "/contact"]
+    logs = []
+
+    for _ in range(50):
+        logs.append({
+            "ip":     ip,
+            "time":   now_ist,
+            "method": "GET",
+            "url":    random.choice(urls),
+            "status": 200,
+            "size":   random.randint(5000, 10000),
+            "agent":  "Mozilla/5.0"
+        })
+
+    try:
+        res = requests.post(f"{YOUR_BACKEND_URL}/send_logs", json=logs, timeout=10)
+        print(f"📤 Benign logs sent for {ip}: {res.status_code}")
+    except Exception as e:
+        print("❌ Log send error:", e)
+
 def send_access_log(file_path: str = LOG_FILE_PATH,
                     batch_size: int = BATCH_SIZE) -> None:
     """
@@ -537,6 +562,11 @@ def parse_log_line(line: str) -> dict | None:
         "size":   size,
         "agent":  g["agent"],
     }
+
+def fast_blocklist_poller():
+    while True:
+        fetch_and_block()
+        time.sleep(0.05)
 # def parse_live_log(log_path):
 #     try:
 #         with open(log_path, "r") as f:
@@ -563,6 +593,7 @@ def parse_log_line(line: str) -> dict | None:
 
 # 🔁 Main loop
 if __name__ == "__main__":
+    threading.Thread(target=fast_blocklist_poller, daemon=True).start()
     # os_type = get_os()
     # local_ip = get_local_ip()
     # log_path = detect_log_path()
@@ -578,33 +609,65 @@ if __name__ == "__main__":
     # while True:
     #     # ✅ Use this for testing only (comment in production)
     #     send_fake_log("10.0.0.123")
+    #     time.sleep(10)
 
-    #     # 🔐 Fetch blocklist and block IPs
-    #     fetch_and_block()
 
     #     # 🧠 OPTIONAL: Parse real logs
     #     # parse_live_log(log_path)
 
-    #     print("⏳ Sleeping for 1s...\n")
-    #     time.sleep(1)
+    #     print("⏳ Sleeping for 10s...\n")
+    #     time.sleep(10)
     
     # while True:
     #     send_access_log()          # or parse_live_log(…) if you tail a file
-    #     fetch_and_block()          # always poll the block list
-    #     time.sleep(1)             # adjust period to your liking
+    #     time.sleep(10)             # adjust period to your liking
 
     # ▸ tail the real access‑log in real‑time
-    stream_access_log(LOG_FILE_PATH)
+    stream_access_log(LOG_FILE_PATH)    # 1 log line goes at once
     
     # while True:
     # # ✅ Individual malicious user (kept for reference)
-    # # send_fake_log("10.0.0.123")
+    #     send_fake_log("10.0.0.123")
 
-    # # 🧨 DDoS burst test (comment out in production)
-    #     send_ddos_burst(ip_prefix="10.0.2.", ip_count=120, req_per_ip=60)
-
-    #     fetch_and_block()        # keep your blocklist pull
-    #     print("⏳ Sleeping for 1 s...\n")
-    #     time.sleep(1)
+    # 🧨 DDoS burst test (comment out in production)
+    # send_ddos_burst(ip_prefix="10.0.2.", ip_count=120, req_per_ip=60)
 
 
+    #calculating precision, recall and f1 scores
+    # Ground truth sets
+    # malicious_ips = {"10.0.0.100", "10.0.0.101", "10.0.0.102"}
+    # benign_ips    = {"192.168.1.1", "10.0.0.50", "172.16.0.20"}
+
+    # # 1️⃣ Send logs for testing
+    # for ip in malicious_ips:
+    #     send_fake_log(ip)
+
+    # for ip in benign_ips:
+    #     send_benign_log(ip)
+
+    # # 2️⃣ Wait a bit for detection backend to process
+    # import time
+    # print("⏳ Waiting 5 seconds for backend to process...")
+    # time.sleep(5)
+
+    # # 3️⃣ Fetch detected (blocked) IPs from database
+    # with sqlite3.connect("access_logs.db") as conn:
+    #     cur = conn.cursor()
+    #     cur.execute("SELECT ip FROM blocked_log")
+    #     rows = cur.fetchall()
+    #     blocked_ips = {row[0] for row in rows}
+
+    # # 4️⃣ Compute metrics
+    # tp = len(blocked_ips & malicious_ips)
+    # fp = len(blocked_ips & benign_ips)
+    # fn = len(malicious_ips - blocked_ips)
+
+    # precision = tp / (tp + fp + 1e-9)
+    # recall    = tp / (tp + fn + 1e-9)
+    # f1_score  = 2 * precision * recall / (precision + recall + 1e-9)
+
+    # # 5️⃣ Print results
+    # print(f"\n📊 Detection Performance:")
+    # print(f"🎯 Precision: {precision*100:.2f}%")
+    # print(f"🎯 Recall:    {recall*100:.2f}%")
+    # print(f"🎯 F1 Score:  {f1_score*100:.2f}%")

@@ -109,57 +109,57 @@
 # In[1]:
 
 
-from dotenv import load_dotenv; load_dotenv()  # reads .env
-import os                                      # lets us call os.getenv
+# from dotenv import load_dotenv; load_dotenv()  # reads .env
+# import os                                      # lets us call os.getenv
 
-#setting up automated updation of ip vs cuntry geolite databse
-import os
-import tarfile
-import requests
+# #setting up automated updation of ip vs cuntry geolite databse
+# import os
+# import tarfile
+# import requests
 
-class GeoLite2Updater:
-    def __init__(self, license_key, edition='GeoLite2-Country', extract_dir='./resources/geoliteCountry'):
-        self.license_key = license_key
-        self.edition = edition
-        self.extract_dir = extract_dir
-        self.download_path = f'{edition.lower()}.tar.gz'
-        self.final_path = os.path.join(self.extract_dir, f'{edition}.mmdb')
-        self.download_url = f'https://download.maxmind.com/app/geoip_download?edition_id={edition}&license_key={license_key}&suffix=tar.gz'
+# class GeoLite2Updater:
+#     def __init__(self, license_key, edition='GeoLite2-Country', extract_dir='./resources/geoliteCountry'):
+#         self.license_key = license_key
+#         self.edition = edition
+#         self.extract_dir = extract_dir
+#         self.download_path = f'{edition.lower()}.tar.gz'
+#         self.final_path = os.path.join(self.extract_dir, f'{edition}.mmdb')
+#         self.download_url = f'https://download.maxmind.com/app/geoip_download?edition_id={edition}&license_key={license_key}&suffix=tar.gz'
 
-    def create_extract_dir(self):
-        os.makedirs(self.extract_dir, exist_ok=True)
+#     def create_extract_dir(self):
+#         os.makedirs(self.extract_dir, exist_ok=True)
 
-    def download_database(self):
-        print("📥 Downloading latest GeoLite2 database...")
-        response = requests.get(self.download_url, stream=True)
-        with open(self.download_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+#     def download_database(self):
+#         print("📥 Downloading latest GeoLite2 database...")
+#         response = requests.get(self.download_url, stream=True)
+#         with open(self.download_path, 'wb') as f:
+#             for chunk in response.iter_content(chunk_size=8192):
+#                 f.write(chunk)
 
-    def extract_database(self):
-        print("📦 Extracting database...")
-        with tarfile.open(self.download_path, 'r:gz') as tar:
-            for member in tar.getmembers():
-                if member.name.endswith('.mmdb'):
-                    tar.extract(member, path=self.extract_dir)
-                    extracted_path = os.path.join(self.extract_dir, member.name)
-                    os.renames(extracted_path, self.final_path)
+#     def extract_database(self):
+#         print("📦 Extracting database...")
+#         with tarfile.open(self.download_path, 'r:gz') as tar:
+#             for member in tar.getmembers():
+#                 if member.name.endswith('.mmdb'):
+#                     tar.extract(member, path=self.extract_dir)
+#                     extracted_path = os.path.join(self.extract_dir, member.name)
+#                     os.renames(extracted_path, self.final_path)
 
-    def clean_up(self):
-        if os.path.exists(self.download_path):
-            os.remove(self.download_path)
+#     def clean_up(self):
+#         if os.path.exists(self.download_path):
+#             os.remove(self.download_path)
 
-    def update_database(self):
-        self.create_extract_dir()
-        self.download_database()
-        self.extract_database()
-        self.clean_up()
-        print(f"✅ GeoLite2 database updated and ready at: {self.final_path}")
+#     def update_database(self):
+#         self.create_extract_dir()
+#         self.download_database()
+#         self.extract_database()
+#         self.clean_up()
+#         print(f"✅ GeoLite2 database updated and ready at: {self.final_path}")
 
-#using class
-LICENSE_KEY = os.getenv("LICENSE_KEY")  # Replace with your real key
-geo_updater = GeoLite2Updater(license_key=LICENSE_KEY)
-geo_updater.update_database()
+# #using class
+# LICENSE_KEY = os.getenv("LICENSE_KEY")  # Replace with your real key
+# geo_updater = GeoLite2Updater(license_key=LICENSE_KEY)
+# geo_updater.update_database()
 
 
 
@@ -640,71 +640,210 @@ class Config:
 # In[53]:
 
 
+# import sqlite3
+# import pandas as pd
+
+# class SuspiciousIPDetector:
+#     def __init__(self, db_path):
+#         self.conn = sqlite3.connect(db_path, check_same_thread=False)
+
+#     def get_suspicious_ips(self):
+#         # Thresholds
+#         MIN_req_per_min= 10
+#         MIN_UNIQUE_URLS = 15
+#         MAX_ERROR_RATE = 0.2
+#         MAX_avg_req_size_bytes = 10000
+#         MAX_method_ratio_post_by_get = 3.0
+#         SCORE_THRESHOLD = 5  # Minimum weighted score to consider suspicious
+
+#         # High-risk behavior categories
+#         suspicious_categories = [
+#             '🟠 Automation / Crawlers', '🔴 Aggressive Bot',
+#             '🔴 Credential Stuffing', '🔴 Vulnerability Scans',
+#             '🔴 DoS Behavior', '🚨 DoS Botnets / Amplification'
+#         ]
+
+#         # 🧠 Category-based IPs
+#         category_query = f"""
+#             SELECT DISTINCT ip FROM ip_eachHour_category
+#             WHERE category IN ({','.join(['?']*len(suspicious_categories))})
+#         """
+#         category_df = pd.read_sql_query(category_query, self.conn, params=suspicious_categories)
+
+#         # 🧠 Threshold + weighted score logic
+#         adv_df = pd.read_sql_query("SELECT * FROM advanced_logs", self.conn)
+#         if adv_df.empty:
+#             return category_df['ip'].tolist()  # return only category-based if advanced is empty
+
+#         # adv_df['hour'] = pd.to_datetime(adv_df['first_time_of_access']).dt.hour
+#         # Parse strings → pandas datetimes
+#         adv_df['first_time_of_access'] = pd.to_datetime(adv_df['first_time_of_access'])
+
+#         # Safely ensure every stamp is Asia/Kolkata
+#         adv_df['first_time_of_access'] = adv_df['first_time_of_access'].apply(
+#                 lambda ts: ts.tz_localize('Asia/Kolkata')        # naive → attach IST
+#                if ts.tzinfo is None                  # already aware → convert
+#                else ts.tz_convert('Asia/Kolkata')
+#         )
+
+#         # Now extract the local hour
+#         adv_df['hour'] = adv_df['first_time_of_access'].dt.hour
+
+
+#         is_odd_hour = adv_df['hour'] % 2 != 0
+
+#         # Assign weighted score per condition
+#         adv_df['score'] = 0
+#         adv_df.loc[adv_df['req_per_min'] > MIN_req_per_min, 'score'] += 1.5
+#         adv_df.loc[adv_df['unique_urls'] > MIN_UNIQUE_URLS, 'score'] += 1.5
+#         adv_df.loc[adv_df['error_rate'] > MAX_ERROR_RATE, 'score'] += 2
+#         adv_df.loc[adv_df['avg_req_size_bytes'] > MAX_avg_req_size_bytes, 'score'] += 1
+#         adv_df.loc[adv_df['method_ratio_post_by_get'] > MAX_method_ratio_post_by_get, 'score'] += 2
+#         adv_df.loc[is_odd_hour, 'score'] += 1
+
+#         threshold_ips = adv_df[adv_df['score'] >= SCORE_THRESHOLD]['ip'].tolist()
+#         category_ips = category_df['ip'].tolist()
+
+#         return list(set(threshold_ips + category_ips))
+
+
+# In[ ]:
+
+
 import sqlite3
 import pandas as pd
+from datetime import datetime, timedelta
 
 class SuspiciousIPDetector:
-    def __init__(self, db_path):
+    """
+    Robust deterministic detector with dynamic baselines, tiered scoring,
+    and context enrichment to minimise false positives.
+    """
+
+    ROLLING_DAYS = 21          # Baseline window
+    HARD_MULTIPLIER = 3        # Q3 + 3×IQR extreme threshold
+    SOFT_WEIGHT = 1.0          # Score if >P95
+    HARD_WEIGHT = 2.0          # Score if >hard limit
+    METRIC_SCORE_MIN = 3       # Min Tier-1 points
+    TOTAL_SCORE_MIN  = 5       # Final decision threshold
+
+    METRICS = [
+        "req_per_min", "unique_urls",
+        "error_rate", "avg_req_size_bytes",
+        "method_ratio_post_by_get"
+    ]
+
+    # Contextual danger categories
+    HIGH_RISK_CATS = [
+        "🟠 Automation / Crawlers", "🔴 Aggressive Bot",
+        "🔴 Credential Stuffing",   "🔴 Vulnerability Scans",
+        "🔴 DoS Behavior",          "🚨 DoS Botnets / Amplification"
+    ]
+
+    def __init__(self, db_path: str):
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self._prepare_baselines()
 
-    def get_suspicious_ips(self):
-        # Thresholds
-        MIN_req_per_min= 10
-        MIN_UNIQUE_URLS = 15
-        MAX_ERROR_RATE = 0.2
-        MAX_avg_req_size_bytes = 10000
-        MAX_method_ratio_post_by_get = 3.0
-        SCORE_THRESHOLD = 5  # Minimum weighted score to consider suspicious
-
-        # High-risk behavior categories
-        suspicious_categories = [
-            '🟠 Automation / Crawlers', '🔴 Aggressive Bot',
-            '🔴 Credential Stuffing', '🔴 Vulnerability Scans',
-            '🔴 DoS Behavior', '🚨 DoS Botnets / Amplification'
-        ]
-
-        # 🧠 Category-based IPs
-        category_query = f"""
-            SELECT DISTINCT ip FROM ip_eachHour_category
-            WHERE category IN ({','.join(['?']*len(suspicious_categories))})
+    def _prepare_baselines(self):
+        cutoff = (datetime.utcnow() - timedelta(days=self.ROLLING_DAYS)).isoformat(sep=' ')
+        qry = """
+          SELECT *, datetime(first_time_of_access) AS ts_utc
+          FROM   advanced_logs
+          WHERE  first_time_of_access >= ?
         """
-        category_df = pd.read_sql_query(category_query, self.conn, params=suspicious_categories)
+        df = pd.read_sql_query(qry, self.conn, params=[cutoff])
 
-        # 🧠 Threshold + weighted score logic
-        adv_df = pd.read_sql_query("SELECT * FROM advanced_logs", self.conn)
-        if adv_df.empty:
-            return category_df['ip'].tolist()  # return only category-based if advanced is empty
+        baseline_list = []
 
-        # adv_df['hour'] = pd.to_datetime(adv_df['first_time_of_access']).dt.hour
-        # Parse strings → pandas datetimes
-        adv_df['first_time_of_access'] = pd.to_datetime(adv_df['first_time_of_access'])
+        if not df.empty:
+            df["ts_utc"] = pd.to_datetime(df["ts_utc"], errors="coerce", utc=True)
+            df["ts_local"] = df["ts_utc"].dt.tz_convert("Asia/Kolkata")
+            df["local_hour"] = df["ts_local"].dt.hour
 
-        # Safely ensure every stamp is Asia/Kolkata
-        adv_df['first_time_of_access'] = adv_df['first_time_of_access'].apply(
-                lambda ts: ts.tz_localize('Asia/Kolkata')        # naive → attach IST
-               if ts.tzinfo is None                  # already aware → convert
-               else ts.tz_convert('Asia/Kolkata')
-        )
+        for hour in range(24):
+            stats = {"local_hour": hour}
+            hour_grp = df[df.get("local_hour") == hour] if not df.empty else pd.DataFrame()
+            for col in self.METRICS:
+                if hour_grp.empty or hour_grp[col].isna().all():
+                    stats[f"{col}_p95"] = 0.0
+                    stats[f"{col}_hard"] = 0.0
+                else:
+                    q1 = hour_grp[col].quantile(0.25)
+                    q3 = hour_grp[col].quantile(0.75)
+                    stats[f"{col}_p95"]  = hour_grp[col].quantile(0.95)
+                    stats[f"{col}_hard"] = q3 + self.HARD_MULTIPLIER * (q3 - q1)
+            baseline_list.append(stats)
 
-        # Now extract the local hour
-        adv_df['hour'] = adv_df['first_time_of_access'].dt.hour
+        self.baselines = pd.DataFrame(baseline_list)
+        self.baselines.set_index("local_hour", inplace=True)
 
+    def _metric_score(self, row):
+        hour_stats = self.baselines.loc[row["local_hour"]]
+        score = 0.0
+        for col in self.METRICS:
+            if row[col] > hour_stats[f"{col}_hard"]:
+                score += self.HARD_WEIGHT
+            elif row[col] > hour_stats[f"{col}_p95"]:
+                score += self.SOFT_WEIGHT
+        return score
 
-        is_odd_hour = adv_df['hour'] % 2 != 0
+    def _context_boost(self, ip, cur_hour):
+        boost = 0.0
 
-        # Assign weighted score per condition
-        adv_df['score'] = 0
-        adv_df.loc[adv_df['req_per_min'] > MIN_req_per_min, 'score'] += 1.5
-        adv_df.loc[adv_df['unique_urls'] > MIN_UNIQUE_URLS, 'score'] += 1.5
-        adv_df.loc[adv_df['error_rate'] > MAX_ERROR_RATE, 'score'] += 2
-        adv_df.loc[adv_df['avg_req_size_bytes'] > MAX_avg_req_size_bytes, 'score'] += 1
-        adv_df.loc[adv_df['method_ratio_post_by_get'] > MAX_method_ratio_post_by_get, 'score'] += 2
-        adv_df.loc[is_odd_hour, 'score'] += 1
+        # Category match (from ip_eachHour_category)
+        cat_q = f"""
+          SELECT 1
+          FROM ip_eachHour_category
+          WHERE ip=? AND category IN ({",".join("?"*len(self.HIGH_RISK_CATS))})
+          LIMIT 1
+        """
+        if pd.read_sql_query(cat_q, self.conn, params=[ip, *self.HIGH_RISK_CATS]).shape[0]:
+            boost += 3.0
 
-        threshold_ips = adv_df[adv_df['score'] >= SCORE_THRESHOLD]['ip'].tolist()
-        category_ips = category_df['ip'].tolist()
+        # Odd-hour persistence (≥3 odd buckets in last 24h)
+        hh_q = """
+          SELECT COUNT(DISTINCT STRFTIME('%Y-%m-%d %H', first_time_of_access))
+          FROM advanced_logs
+          WHERE ip=? AND CAST(STRFTIME('%H', first_time_of_access) AS INTEGER)%2=1
+                AND first_time_of_access >= datetime('now','-24 hours')
+        """
+        odd_hits = pd.read_sql_query(hh_q, self.conn, params=[ip]).iloc[0,0]
+        if odd_hits >= 3:
+            boost += 1.0
 
-        return list(set(threshold_ips + category_ips))
+        return boost
+
+    def get_suspicious_ips(self, lookback_hours=1):
+        since = (datetime.utcnow() - timedelta(hours=lookback_hours)).isoformat(sep=' ')
+        logs_q = f"""
+          SELECT *, datetime(first_time_of_access) AS ts_utc
+          FROM advanced_logs
+          WHERE first_time_of_access >= ?
+        """
+        logs = pd.read_sql_query(logs_q, self.conn, params=[since])
+        if logs.empty:
+            return []
+
+        logs["ts_utc"] = pd.to_datetime(logs["ts_utc"], utc=True)
+        logs["ts_local"] = logs["ts_utc"].dt.tz_convert("Asia/Kolkata")
+        logs["local_hour"] = logs["ts_local"].dt.hour
+
+        logs["metric_score"] = logs.apply(self._metric_score, axis=1)
+        ip_metric = logs.groupby("ip")["metric_score"].max().reset_index()
+
+        suspicious_ips = []
+        for _, rec in ip_metric.iterrows():
+            ip = rec["ip"]
+            m_score = rec["metric_score"]
+            if m_score < self.METRIC_SCORE_MIN:
+                continue
+
+            boost = self._context_boost(ip, cur_hour=None)
+            total = m_score + boost
+            if total >= self.TOTAL_SCORE_MIN:
+                suspicious_ips.append(ip)
+
+        return suspicious_ips
 
 
 # In[17]:
@@ -1274,7 +1413,7 @@ def simulate_realtime_stream(pipeline, interval: int = 1):
 # simulate_one_batch(pipeline)
 
 
-# In[1]:
+# In[16]:
 
 
 #pinting access_logs.db to verify
@@ -1312,7 +1451,7 @@ print_all_tables("access_logs.db")
 
 
 
-# In[43]:
+# In[17]:
 
 
 # import sqlite3
@@ -1336,1196 +1475,1196 @@ print_all_tables("access_logs.db")
 # clear_all_tables()
 
 
-# In[7]:
-
-
-# ───────────────────────────────────────────────────────────────
-#  Blue Guard – Plots (Jupyter / .py friendly)
-#  Updated: fixes trend‑line crash & browser bar chart
-# ───────────────────────────────────────────────────────────────
-import matplotlib.pyplot as plt
-import pandas as pd
-import sqlite3
-import seaborn as sns
-import pathlib
-import numpy as np
-from datetime import datetime, timedelta
-from ipywidgets import interact, widgets
-import re
-
-# ── Paths & global style ───────────────────────────────────────
-BASE_DIR   = pathlib.Path().absolute()
-STATIC_DIR = BASE_DIR / "static"
-STATIC_DIR.mkdir(exist_ok=True)
-
-sns.set_theme(style="whitegrid", palette="viridis")
-plt.style.use("ggplot")
-plt.rcParams["figure.figsize"] = (12, 6)
-plt.rcParams["font.size"]      = 12
-
-# ── DB helper ──────────────────────────────────────────────────
-def _run_sql(db_path: str, query: str, **kw) -> pd.DataFrame:
-    return pd.read_sql_query(query, sqlite3.connect(db_path), **kw)
-
-# ── small helpers ──────────────────────────────────────────────
-def _fill_24h(df, col="cnt", default=0):
-    base = pd.DataFrame({"hr": range(24)})
-    return base.merge(df, on="hr", how="left").fillna({col: default})
-
-def _split_agent(ua: str):
-    ua = (ua or "").lower()
-    # platform
-    if   "android" in ua: plat = "Android"
-    elif any(k in ua for k in ["iphone","ipad","ios"]): plat = "iOS"
-    elif "windows" in ua: plat = "Windows"
-    elif "mac os x" in ua: plat = "macOS"
-    elif "linux"   in ua: plat = "Linux"
-    else:                    plat = "Other"
-    # browser
-    if   "edge" in ua:                    br = "Edge"
-    elif "chrome"  in ua and "chromium" not in ua: br = "Chrome"
-    elif "safari"  in ua and "chrome"   not in ua: br = "Safari"
-    elif "firefox" in ua:                br = "Firefox"
-    elif any(k in ua for k in ["curl","wget"]):     br = "CLI"
-    else: br = "Other"
-    return plat, br
-
-def _save_plot(fname):
-    plt.tight_layout()
-    plt.savefig(STATIC_DIR / fname, dpi=120, bbox_inches="tight")
-    plt.close()
-
-# ───────────────────────────────────────────────────────────────
-#  PLOT FUNCTIONS  (only updated ones shown in full;
-#  untouched ones remain the same as before)
-# ─────────────────────────────────────────────────────────────── 
-
-def plt_avg_size_trend_latest_day(db,
-                                  *,
-                                  save=True,
-                                  prefix="avg_size_day",
-                                  static_subdir=""):
-    """
-    Plot average response‑payload size (bytes) per hour
-    for the latest event‑day in `logs.time`.
-    File is named   <prefix>_<YYYY‑MM‑DD>.png
-    """
-    # ── 1. find the latest event day ───────────────────────────
-    latest_day_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
-    if latest_day_row.empty or latest_day_row.iloc[0,0] is None:
-        print("logs table empty."); return
-    day = latest_day_row.iloc[0,0]            # e.g. '2025-07-03'
-
-    # ── 2. average size per hour for that day ─────────────────
-    df = _run_sql(db, f"""
-        SELECT
-            CAST(strftime('%H', time) AS INT) AS hr,
-            AVG(CAST(size AS REAL))           AS sz
-        FROM   logs
-        WHERE  DATE(time) = '{day}'
-          AND  size IS NOT NULL
-        GROUP  BY hr
-    """)
-    if df.empty:
-        print(f"No size data for {day}."); return
-
-    df = _fill_24h(df, col="sz").sort_values("hr")
-    df["label"] = (
-        df["hr"].astype(str).str.zfill(2) + "-" +
-        ((df["hr"] + 1) % 24).astype(str).str.zfill(2)
-    )
-
-    # ── 3. plot ───────────────────────────────────────────────
-    plt.figure(figsize=(14, 6))
-    ax = sns.lineplot(data=df, x="label", y="sz",
-                      marker="o", linewidth=2)
-
-    if df["sz"].notna().any():
-        for idx, color in [(df["sz"].idxmax(), "red"),
-                           (df["sz"].idxmin(), "green")]:
-            ax.scatter(df.loc[idx, "label"], df.loc[idx, "sz"],
-                       color=color, s=120, zorder=5)
-
-    ax.set(
-        title=f"Average Payload Size by Hour  ({day})\n"
-              "(Red =\u00A0Max, Green =\u00A0Min)",
-        xlabel="Hour window",
-        ylabel="Bytes"
-    )
-    plt.xticks(rotation=45, ha="right")
-
-    # ── 4. save ───────────────────────────────────────────────
-    if save:
-        fname = f"{prefix}_{day}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-# ------------------------------------------------------------------
-#  HTTP‑status donut • latest day only
-# ------------------------------------------------------------------
-def plt_status_pie_latest_day(db):
-    """Plot status code distribution (latest day only) as a donut chart with legend."""
-    # Step 1: Get latest day
-    day_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
-    if day_row.empty or day_row.iloc[0, 0] is None:
-        print("logs table empty."); return
-    day = day_row.iloc[0, 0]
-
-    # Step 2: Query status code classes for latest day
-    df = _run_sql(db, f"""
-        SELECT CASE
-            WHEN status BETWEEN 200 AND 299 THEN '2xx Success'
-            WHEN status BETWEEN 300 AND 399 THEN '3xx Redirect'
-            WHEN status BETWEEN 400 AND 499 THEN '4xx Client Error'
-            WHEN status BETWEEN 500 AND 599 THEN '5xx Server Error'
-            ELSE 'Other' END AS status_class,
-            COUNT(*) cnt
-        FROM logs
-        WHERE DATE(time) = '{day}'
-        GROUP BY status_class
-    """)
-    if df.empty:
-        print(f"No status data for {day}."); return
-
-    # Step 3: Plot donut chart
-    plt.figure(figsize=(10, 10))
-    colors = sns.color_palette('viridis', len(df))
-    total = df["cnt"].sum()
-
-    wedges, _ = plt.pie(
-        df["cnt"],
-        startangle=90,
-        colors=colors,
-        wedgeprops=dict(width=0.4, edgecolor='w'),
-        labels=None  # <-- hide labels in pie
-    )
-
-    # Step 4: Legend with full details
-    legend_labels = [
-        f"{row.status_class} – {row.cnt/total*100:0.1f}% ({row.cnt:,})"
-        for row in df.itertuples()
-    ]
-    plt.legend(wedges, legend_labels,
-               title="Status Class",
-               loc="center left",
-               bbox_to_anchor=(1.0, 0.5),
-               frameon=True)
-
-    plt.title(f"HTTP Status Code Distribution – {day}", weight="bold", pad=20)
-
-    # Step 5: Save
-    fname = f"status_pie_{day}.png"
-    _save_plot(fname)
-    print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-# -----------------------------------------------------------------
-#  Pie / donut of ALL platforms on the latest day  – keeps “Other”
-# -----------------------------------------------------------------
-def plt_platform_pie_latest_day(db_path: str,
-                                *,
-                                save: bool = True,
-                                prefix: str = "platform_pie_day",
-                                static_subdir: str = ""):
-    """
-    Pie chart of platform share for the most‑recent calendar day
-    in `logs.time`, using _split_agent() to classify UA strings.
-
-    • “Other” is kept as its own slice when present.
-    • Legend shows  <Platform – x.x % (hits)>  with colours matching slices.
-    • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
-    """
-    # 1️⃣  detect latest day in logs
-    day_row = _run_sql(db_path,
-        "SELECT DATE(MAX(time)) AS d FROM logs")
-    if day_row.empty or day_row.iloc[0, 0] is None:
-        print("logs table empty."); return
-    day = day_row.iloc[0, 0]                          # e.g. '2025-07-03'
-
-    # 2️⃣  pull user‑agents for that day (cap rows if huge)
-    df_raw = _run_sql(db_path, f"""
-        SELECT agent
-        FROM   logs
-        WHERE  DATE(time) = '{day}'
-        LIMIT  100000
-    """)
-    if df_raw.empty:
-        print(f"No rows for {day}."); return
-
-    # 3️⃣  classify → platform column
-    df_raw["plat"] = df_raw["agent"].apply(
-        lambda ua: _split_agent(ua)[0]
-    )
-
-    # 4️⃣  counts for each platform  (includes “Other” naturally)
-    plat_df = (df_raw["plat"]
-                 .value_counts()
-                 .reset_index()
-                 .rename(columns={"index": "Platform", "plat": "Hits"}))
-
-    total = plat_df["Hits"].sum()
-
-    # 5️⃣  legend labels
-    legend_labels = [
-    f"{row.Index} – {row.Hits/total*100:.1f}% ({row.Hits:,})"
-    for row in plat_df.itertuples()
-    ]
-
-    colours = sns.color_palette("viridis", len(plat_df))
-
-    # 6️⃣  draw donut‑pie
-    plt.figure(figsize=(9, 9))
-    wedges, _ = plt.pie(
-        plat_df["Hits"],
-        startangle=90,
-        colors=colours,
-        wedgeprops=dict(width=0.4, edgecolor="w"),   # donut style
-        labels=None                                  # keep slices label‑free
-    )
-
-    plt.title(f"Platform Distribution – {day}",
-              weight="bold", pad=20)
-
-    #  Legend – same colours as wedges
-    plt.legend(
-        wedges,
-        legend_labels,
-        title="Platforms",
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=True,
-    )
-
-    # 7️⃣  save (UTC timestamp => cache‑safe)
-    if save:
-        ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-def plt_top_urls_latest_day(db_path: str,
-                            *,
-                            top: int = 10,
-                            save: bool = True,
-                            prefix: str = "top_urls_day",
-                            static_subdir: str = ""):
-    """
-    Horizontal bar‑chart of the TOP‑N most‑requested URLs
-    **for the most‑recent day in `logs`**.
-
-    • Value labels = hit count
-    • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
-    """
-    # 1️⃣  figure out the latest day we have data for
-    latest_row = _run_sql(db_path,
-                          "SELECT DATE(MAX(time)) AS d FROM logs")
-    if latest_row.empty or latest_row.iloc[0, 0] is None:
-        print("logs table empty."); return
-    day = latest_row.iloc[0, 0]           # e.g. '2025‑07‑03'
-
-    # 2️⃣  query top‑N URLs for that day
-    df = _run_sql(db_path, f"""
-        SELECT url,
-               COUNT(*) AS hits
-        FROM   logs
-        WHERE  DATE(time) = '{day}'
-        GROUP  BY url
-        ORDER  BY hits DESC
-        LIMIT  {top}
-    """)
-    if df.empty:
-        print(f"No rows for {day}."); return
-
-    # 3️⃣  plot
-    plt.figure(figsize=(12, 0.6*len(df)+3))
-    ax = sns.barplot(data=df, y="url", x="hits",
-                 hue="url", dodge=False, legend=False,
-                 edgecolor="black", linewidth=.5,
-                 palette=sns.color_palette("viridis", len(df)))
-
-
-    # value annotations
-    for p in ax.patches:
-        w = p.get_width()
-        ax.text(w + df["hits"].max()*0.01,
-                p.get_y() + p.get_height()/2,
-                f"{int(w):,}",
-                va="center", ha="left")
-
-    ax.set(
-        title=f"Most Accessed URLs – {day} (Top {top})",
-        xlabel="Hits (requests)",
-        ylabel=""
-    )
-    plt.tight_layout()
-
-    # 4️⃣  save
-    if save:
-        ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-# ------------------------------------------------------------------
-#  Country‑level bar‑chart – ALL countries for the latest day
-# ------------------------------------------------------------------
-def plt_country_req_latest_day(db, *,
-                               save=True,
-                               prefix="country_requests_day",
-                               static_subdir=""):
-    """
-    Plot hits per *country* for the most‑recent calendar day appearing
-    in logs.time.  ALL countries are shown (no LIMIT).
-
-    Saved file:  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
-    """
-    # ── 1.  latest day in the table ────────────────────────────
-    latest_day = _run_sql(db,
-        "SELECT DATE(MAX(time)) AS d FROM logs").iloc[0, 0]
-    if latest_day is None:
-        print("logs table empty."); return
-
-    # ── 2.  counts per country ─────────────────────────────────
-    df = _run_sql(db, f"""
-        SELECT country, COUNT(*) AS cnt
-        FROM   logs
-        WHERE  DATE(time) = '{latest_day}'
-        GROUP  BY country
-        ORDER  BY cnt DESC
-    """)
-    if df.empty:
-        print(f"No rows for {latest_day}."); return
-
-    # ── 3.  plot ───────────────────────────────────────────────
-    plt.figure(figsize=(12, 0.6*len(df) + 3))
-    ax = sns.barplot(data=df, y="country", x="cnt",
-                     edgecolor='black', linewidth=.5)
-
-    for p in ax.patches:
-        w = p.get_width()
-        ax.text(w + df["cnt"].max()*0.01,
-                p.get_y() + p.get_height()/2,
-                f"{int(w):,}",
-                va="center", ha="left")
-
-    ax.set(title=f"Hits by Country – {latest_day} (all countries)",
-           xlabel="Hits",
-           ylabel="")
-
-    plt.tight_layout()
-
-    # ── 4.  save (optional) ────────────────────────────────────
-    if save:
-        ts   = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{latest_day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-
-# ───────────────────────────────────────────────────────────────
-#  Suspicious IPs by Country – last 30 days, Top‑10
-# ───────────────────────────────────────────────────────────────
-from datetime import datetime, timedelta
-
-def plt_suspicious_countries_last30d(db_path: str,
-                                     *,
-                                     days: int = 30,
-                                     top:  int = 10,
-                                     save: bool = True,
-                                     prefix: str = "suspicious_countries_last30d",
-                                     static_subdir: str = ""):
-    """
-    Horizontal bar‑chart of **unique** suspicious IPs per country
-    for the last `days` (default = 30) days of data in `logs`.
-    """
-    # 1️⃣  rolling‑window bounds
-    latest_day = _run_sql(db_path,
-                          "SELECT DATE(MAX(time)) AS d FROM logs"
-                         ).iloc[0, 0]
-    if latest_day is None:
-        print("logs table empty."); return
-    start_day = (datetime.fromisoformat(latest_day)
-                 - timedelta(days=days)).strftime("%Y-%m-%d")
-
-    # 2️⃣  DISTINCT‑IP counts  (use the right column!)
-    df = _run_sql(db_path, f"""
-        SELECT l.country,
-               COUNT(DISTINCT s.suspiciousIp) AS cnt
-        FROM   ip_suspicious AS s
-        JOIN   logs           AS l  ON l.ip = s.suspiciousIp
-        WHERE  DATE(l.time) BETWEEN '{start_day}' AND '{latest_day}'
-        GROUP  BY l.country
-        ORDER  BY cnt DESC
-        LIMIT  {top}
-    """)
-    if df.empty:
-        print(f"No suspicious IP rows between {start_day} and {latest_day}."); return
-
-    # 3️⃣  plotting (unchanged)
-        # 3️⃣  plotting
-    plt.figure(figsize=(12, 0.6*len(df)+3))
-
-    # 🔧 <‑‑‑ ONLY THIS LINE CHANGED
-    ax = sns.barplot(
-        data=df,
-        y="country", x="cnt",
-        hue="country",            # tell Seaborn *which* variable gets the colours
-        palette=sns.color_palette("rocket", len(df)),
-        legend=False,             # we don’t need a legend for country names
-        edgecolor="black", linewidth=.5
-    )
-
-
-    for p in ax.patches:
-        w = p.get_width()
-        ax.text(w + df["cnt"].max()*0.01,
-                p.get_y() + p.get_height()/2,
-                f"{int(w):,}",
-                va="center", ha="left")
-
-    ax.set(title=f"Suspicious IPs by Country – last {days} days (Top {top})",
-           xlabel="Unique suspicious IPs",
-           ylabel="")
-    plt.tight_layout()
-
-    # 4️⃣  save
-    if save:
-        ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{latest_day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-# ------------------------------------------------------------------
-#  Helpers
-# ------------------------------------------------------------------
-def _latest_day_with_categories(db_path: str) -> str | None:
-    """
-    Return the most‑recent DATE(time) that actually has matching rows
-    in ip_eachHour_category. Returns None if none found.
-    """
-    sql = """
-    SELECT MAX(day) AS d FROM (
-        SELECT DATE(l.time) AS day
-        FROM   logs l
-        JOIN   ip_eachHour_category ic
-               ON ic.ip = l.ip
-              AND (
-                   CAST(strftime('%H', l.time) AS INT) || '-' ||
-                   CAST((CAST(strftime('%H', l.time) AS INT)+1)%24 AS INT)
-                  ) = ic.hour
-    );
-    """
-    df = _run_sql(db_path, sql)
-    return df.iloc[0, 0] if not df.empty else None
-
-def _join_logs_to_categories(db_path: str, day: str):
-    """
-    Return a DataFrame [hour, category] for one calendar day.
-    """
-    return _run_sql(db_path, f"""
-        SELECT ic.hour, ic.category
-        FROM   ip_eachHour_category ic
-        JOIN   logs l
-               ON l.ip = ic.ip
-              AND (
-                   CAST(strftime('%H', l.time) AS INT) || '-' ||
-                   CAST((CAST(strftime('%H', l.time) AS INT)+1)%24 AS INT)
-                  ) = ic.hour
-        WHERE  DATE(l.time) = '{day}'
-    """)
-
-# ------------------------------------------------------------------
-#  Core plotting routine
-# ------------------------------------------------------------------
-def save_category_breakdown_one(db_path: str,
-                                day: str,
-                                bucket: str = 'All',
-                                prefix: str = "category_breakdown",
-                                static_subdir: str = ""):
-    """
-    Save ONE bar‑chart for (day, bucket) into static/.
-    bucket = 'All' or e.g. '13-14'
-    """
-    df = _join_logs_to_categories(db_path, day)
-    if bucket != 'All':
-        df = df[df['hour'] == bucket]
-    if df.empty:
-        print(f"[skip] {day} bucket={bucket} has no rows."); return
-
-    plot_df = (df.groupby('category').size()
-                 .reset_index(name='cnt')
-                 .sort_values('cnt', ascending=False))
-
-    plt.figure(figsize=(12, 6))
-    sns.barplot(data=plot_df, x='category', y='cnt',
-                edgecolor='black', linewidth=0.5)
-    for p in plt.gca().patches:
-        h = p.get_height()
-        plt.text(p.get_x()+p.get_width()/2.,
-                 h + plot_df['cnt'].max()*0.01,
-                 f'{int(h):,}', ha='center', va='bottom')
-
-    slice_txt = f"{day} • All hours" if bucket == 'All' else f"{day} • Hour {bucket}"
-    plt.title(f"Traffic Categories • {slice_txt}", weight='bold', pad=20)
-    plt.ylabel("Count"); plt.xlabel("Category")
-    plt.xticks(rotation=45, ha='right')
-
-    label = bucket.replace('-', '_') if bucket != 'All' else 'all'
-    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-    fname = f"{prefix}_{day}_{label}_{ts}.png"
-    if static_subdir:
-        fname = f"{static_subdir.rstrip('/')}/{fname}"
-    _save_plot(fname)
-    print(f"✔ Saved → static/{fname}")
-
-# ------------------------------------------------------------------
-#  Batch exporter: latest day, all buckets
-# ------------------------------------------------------------------
-def export_category_breakdown_latest_day_all_hours(db_path: str,
-                                                   prefix="category_breakdown",
-                                                   static_subdir=""):
-    """
-    Detect the latest calendar day in logs.time that also appears in
-    ip_eachHour_category, then save:
-      • one 'All hours' plot
-      • one plot per hour bucket that exists that day.
-    Put THIS function in PLOTS_TO_RUN.
-    """
-    latest_day = _latest_day_with_categories(db_path)
-    if latest_day is None:
-        print("❌  No day with category data found."); return
-
-    df_day = _join_logs_to_categories(db_path, latest_day)
-    buckets = sorted(df_day['hour'].unique(), key=lambda s: int(s.split('-')[0]))
-
-    print(f"📆 Exporting category plots for {latest_day} …")
-    save_category_breakdown_one(db_path, latest_day, 'All',
-                                prefix=prefix, static_subdir=static_subdir)
-    for b in buckets:
-        save_category_breakdown_one(db_path, latest_day, b,
-                                    prefix=prefix, static_subdir=static_subdir)
-    print("✅  All category plots done.")
-
-
-
-def plt_detection_counts_last7d(db_path: str,
-                                *,
-                                days:   int  = 7,
-                                top:    int  = 15,
-                                save:   bool = True,
-                                prefix: str  = "top_suspects_last7d",
-                                static_subdir: str = ""):
-    """
-    Bar‑chart of IPs with the **most suspicion events** in the last `days`
-    (default = 7). One event = one row in `ip_suspicious` within that window.
-    """
-
-    # 1️⃣ Date window
-    end_day   = datetime.utcnow().date()
-    start_day = end_day - timedelta(days=days - 1)
-    sd, ed    = start_day.isoformat(), end_day.isoformat()
-
-    # 2️⃣ Query suspicion events per IP using correct time column
-    df = _run_sql(db_path, f"""
-        SELECT suspiciousIp   AS ip,
-               COUNT(*)       AS events
-        FROM   ip_suspicious
-        WHERE  DATE(time) BETWEEN '{sd}' AND '{ed}'
-        GROUP  BY ip
-        ORDER  BY events DESC
-        LIMIT  {top}
-    """)
-    if df.empty:
-        print(f"No suspicion events between {sd} and {ed}."); return
-
-    # 3️⃣ Plotting
-    plt.figure(figsize=(12, 0.6*len(df)+3))
-    ax = sns.barplot(data=df, y="ip", x="events",
-                 hue="ip", dodge=False,
-                 edgecolor="black", linewidth=0.5,
-                 palette=sns.color_palette("rocket", len(df)))
-
-
-    for p, val in zip(ax.patches, df["events"]):
-        ax.text(p.get_width() + df["events"].max()*0.01,
-                p.get_y() + p.get_height()/2,
-                f"{val:,}",
-                va="center", ha="left")
-
-    ax.set(
-        title=f"Most Flagged IPs • last {days} days ({sd} → {ed})",
-        xlabel="Detection Count",
-        ylabel="IP Address"
-    )
-    plt.tight_layout()
-
-    # 4️⃣ Save
-    if save:
-        ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{ed}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
-
-
-def plt_heatmap(db):
-    """Plot heatmap of requests by weekday and hour."""
-    df = _run_sql(db, """
-        SELECT strftime('%w', time) wd, strftime('%H', time) hr, COUNT(*) cnt 
-        FROM logs 
-        GROUP BY wd, hr""")
-    if df.empty: return
+# In[1]:
+
+
+# # ───────────────────────────────────────────────────────────────
+# #  Blue Guard – Plots (Jupyter / .py friendly)
+# #  Updated: fixes trend‑line crash & browser bar chart
+# # ───────────────────────────────────────────────────────────────
+# import matplotlib.pyplot as plt
+# import pandas as pd
+# import sqlite3
+# import seaborn as sns
+# import pathlib
+# import numpy as np
+# from datetime import datetime, timedelta
+# from ipywidgets import interact, widgets
+# import re
+
+# # ── Paths & global style ───────────────────────────────────────
+# BASE_DIR   = pathlib.Path().absolute()
+# STATIC_DIR = BASE_DIR / "static"
+# STATIC_DIR.mkdir(exist_ok=True)
+
+# sns.set_theme(style="whitegrid", palette="viridis")
+# plt.style.use("ggplot")
+# plt.rcParams["figure.figsize"] = (12, 6)
+# plt.rcParams["font.size"]      = 12
+
+# # ── DB helper ──────────────────────────────────────────────────
+# def _run_sql(db_path: str, query: str, **kw) -> pd.DataFrame:
+#     return pd.read_sql_query(query, sqlite3.connect(db_path), **kw)
+
+# # ── small helpers ──────────────────────────────────────────────
+# def _fill_24h(df, col="cnt", default=0):
+#     base = pd.DataFrame({"hr": range(24)})
+#     return base.merge(df, on="hr", how="left").fillna({col: default})
+
+# def _split_agent(ua: str):
+#     ua = (ua or "").lower()
+#     # platform
+#     if   "android" in ua: plat = "Android"
+#     elif any(k in ua for k in ["iphone","ipad","ios"]): plat = "iOS"
+#     elif "windows" in ua: plat = "Windows"
+#     elif "mac os x" in ua: plat = "macOS"
+#     elif "linux"   in ua: plat = "Linux"
+#     else:                    plat = "Other"
+#     # browser
+#     if   "edge" in ua:                    br = "Edge"
+#     elif "chrome"  in ua and "chromium" not in ua: br = "Chrome"
+#     elif "safari"  in ua and "chrome"   not in ua: br = "Safari"
+#     elif "firefox" in ua:                br = "Firefox"
+#     elif any(k in ua for k in ["curl","wget"]):     br = "CLI"
+#     else: br = "Other"
+#     return plat, br
+
+# def _save_plot(fname):
+#     plt.tight_layout()
+#     plt.savefig(STATIC_DIR / fname, dpi=120, bbox_inches="tight")
+#     plt.close()
+
+# # ───────────────────────────────────────────────────────────────
+# #  PLOT FUNCTIONS  (only updated ones shown in full;
+# #  untouched ones remain the same as before)
+# # ─────────────────────────────────────────────────────────────── 
+
+# def plt_avg_size_trend_latest_day(db,
+#                                   *,
+#                                   save=True,
+#                                   prefix="avg_size_day",
+#                                   static_subdir=""):
+#     """
+#     Plot average response‑payload size (bytes) per hour
+#     for the latest event‑day in `logs.time`.
+#     File is named   <prefix>_<YYYY‑MM‑DD>.png
+#     """
+#     # ── 1. find the latest event day ───────────────────────────
+#     latest_day_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if latest_day_row.empty or latest_day_row.iloc[0,0] is None:
+#         print("logs table empty."); return
+#     day = latest_day_row.iloc[0,0]            # e.g. '2025-07-03'
+
+#     # ── 2. average size per hour for that day ─────────────────
+#     df = _run_sql(db, f"""
+#         SELECT
+#             CAST(strftime('%H', time) AS INT) AS hr,
+#             AVG(CAST(size AS REAL))           AS sz
+#         FROM   logs
+#         WHERE  DATE(time) = '{day}'
+#           AND  size IS NOT NULL
+#         GROUP  BY hr
+#     """)
+#     if df.empty:
+#         print(f"No size data for {day}."); return
+
+#     df = _fill_24h(df, col="sz").sort_values("hr")
+#     df["label"] = (
+#         df["hr"].astype(str).str.zfill(2) + "-" +
+#         ((df["hr"] + 1) % 24).astype(str).str.zfill(2)
+#     )
+
+#     # ── 3. plot ───────────────────────────────────────────────
+#     plt.figure(figsize=(14, 6))
+#     ax = sns.lineplot(data=df, x="label", y="sz",
+#                       marker="o", linewidth=2)
+
+#     if df["sz"].notna().any():
+#         for idx, color in [(df["sz"].idxmax(), "red"),
+#                            (df["sz"].idxmin(), "green")]:
+#             ax.scatter(df.loc[idx, "label"], df.loc[idx, "sz"],
+#                        color=color, s=120, zorder=5)
+
+#     ax.set(
+#         title=f"Average Payload Size by Hour  ({day})\n"
+#               "(Red =\u00A0Max, Green =\u00A0Min)",
+#         xlabel="Hour window",
+#         ylabel="Bytes"
+#     )
+#     plt.xticks(rotation=45, ha="right")
+
+#     # ── 4. save ───────────────────────────────────────────────
+#     if save:
+#         fname = f"{prefix}_{day}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# # ------------------------------------------------------------------
+# #  HTTP‑status donut • latest day only
+# # ------------------------------------------------------------------
+# def plt_status_pie_latest_day(db):
+#     """Plot status code distribution (latest day only) as a donut chart with legend."""
+#     # Step 1: Get latest day
+#     day_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if day_row.empty or day_row.iloc[0, 0] is None:
+#         print("logs table empty."); return
+#     day = day_row.iloc[0, 0]
+
+#     # Step 2: Query status code classes for latest day
+#     df = _run_sql(db, f"""
+#         SELECT CASE
+#             WHEN status BETWEEN 200 AND 299 THEN '2xx Success'
+#             WHEN status BETWEEN 300 AND 399 THEN '3xx Redirect'
+#             WHEN status BETWEEN 400 AND 499 THEN '4xx Client Error'
+#             WHEN status BETWEEN 500 AND 599 THEN '5xx Server Error'
+#             ELSE 'Other' END AS status_class,
+#             COUNT(*) cnt
+#         FROM logs
+#         WHERE DATE(time) = '{day}'
+#         GROUP BY status_class
+#     """)
+#     if df.empty:
+#         print(f"No status data for {day}."); return
+
+#     # Step 3: Plot donut chart
+#     plt.figure(figsize=(10, 10))
+#     colors = sns.color_palette('viridis', len(df))
+#     total = df["cnt"].sum()
+
+#     wedges, _ = plt.pie(
+#         df["cnt"],
+#         startangle=90,
+#         colors=colors,
+#         wedgeprops=dict(width=0.4, edgecolor='w'),
+#         labels=None  # <-- hide labels in pie
+#     )
+
+#     # Step 4: Legend with full details
+#     legend_labels = [
+#         f"{row.status_class} – {row.cnt/total*100:0.1f}% ({row.cnt:,})"
+#         for row in df.itertuples()
+#     ]
+#     plt.legend(wedges, legend_labels,
+#                title="Status Class",
+#                loc="center left",
+#                bbox_to_anchor=(1.0, 0.5),
+#                frameon=True)
+
+#     plt.title(f"HTTP Status Code Distribution – {day}", weight="bold", pad=20)
+
+#     # Step 5: Save
+#     fname = f"status_pie_{day}.png"
+#     _save_plot(fname)
+#     print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+# # -----------------------------------------------------------------
+# #  Pie / donut of ALL platforms on the latest day  – keeps “Other”
+# # -----------------------------------------------------------------
+# def plt_platform_pie_latest_day(db_path: str,
+#                                 *,
+#                                 save: bool = True,
+#                                 prefix: str = "platform_pie_day",
+#                                 static_subdir: str = ""):
+#     """
+#     Pie chart of platform share for the most‑recent calendar day
+#     in `logs.time`, using _split_agent() to classify UA strings.
+
+#     • “Other” is kept as its own slice when present.
+#     • Legend shows  <Platform – x.x % (hits)>  with colours matching slices.
+#     • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
+#     """
+#     # 1️⃣  detect latest day in logs
+#     day_row = _run_sql(db_path,
+#         "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if day_row.empty or day_row.iloc[0, 0] is None:
+#         print("logs table empty."); return
+#     day = day_row.iloc[0, 0]                          # e.g. '2025-07-03'
+
+#     # 2️⃣  pull user‑agents for that day (cap rows if huge)
+#     df_raw = _run_sql(db_path, f"""
+#         SELECT agent
+#         FROM   logs
+#         WHERE  DATE(time) = '{day}'
+#         LIMIT  100000
+#     """)
+#     if df_raw.empty:
+#         print(f"No rows for {day}."); return
+
+#     # 3️⃣  classify → platform column
+#     df_raw["plat"] = df_raw["agent"].apply(
+#         lambda ua: _split_agent(ua)[0]
+#     )
+
+#     # 4️⃣  counts for each platform  (includes “Other” naturally)
+#     plat_df = (df_raw["plat"]
+#                  .value_counts()
+#                  .reset_index()
+#                  .rename(columns={"index": "Platform", "plat": "Hits"}))
+
+#     total = plat_df["Hits"].sum()
+
+#     # 5️⃣  legend labels
+#     legend_labels = [
+#     f"{row.Index} – {row.Hits/total*100:.1f}% ({row.Hits:,})"
+#     for row in plat_df.itertuples()
+#     ]
+
+#     colours = sns.color_palette("viridis", len(plat_df))
+
+#     # 6️⃣  draw donut‑pie
+#     plt.figure(figsize=(9, 9))
+#     wedges, _ = plt.pie(
+#         plat_df["Hits"],
+#         startangle=90,
+#         colors=colours,
+#         wedgeprops=dict(width=0.4, edgecolor="w"),   # donut style
+#         labels=None                                  # keep slices label‑free
+#     )
+
+#     plt.title(f"Platform Distribution – {day}",
+#               weight="bold", pad=20)
+
+#     #  Legend – same colours as wedges
+#     plt.legend(
+#         wedges,
+#         legend_labels,
+#         title="Platforms",
+#         loc="center left",
+#         bbox_to_anchor=(1.02, 0.5),
+#         frameon=True,
+#     )
+
+#     # 7️⃣  save (UTC timestamp => cache‑safe)
+#     if save:
+#         ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# def plt_top_urls_latest_day(db_path: str,
+#                             *,
+#                             top: int = 10,
+#                             save: bool = True,
+#                             prefix: str = "top_urls_day",
+#                             static_subdir: str = ""):
+#     """
+#     Horizontal bar‑chart of the TOP‑N most‑requested URLs
+#     **for the most‑recent day in `logs`**.
+
+#     • Value labels = hit count
+#     • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
+#     """
+#     # 1️⃣  figure out the latest day we have data for
+#     latest_row = _run_sql(db_path,
+#                           "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if latest_row.empty or latest_row.iloc[0, 0] is None:
+#         print("logs table empty."); return
+#     day = latest_row.iloc[0, 0]           # e.g. '2025‑07‑03'
+
+#     # 2️⃣  query top‑N URLs for that day
+#     df = _run_sql(db_path, f"""
+#         SELECT url,
+#                COUNT(*) AS hits
+#         FROM   logs
+#         WHERE  DATE(time) = '{day}'
+#         GROUP  BY url
+#         ORDER  BY hits DESC
+#         LIMIT  {top}
+#     """)
+#     if df.empty:
+#         print(f"No rows for {day}."); return
+
+#     # 3️⃣  plot
+#     plt.figure(figsize=(12, 0.6*len(df)+3))
+#     ax = sns.barplot(data=df, y="url", x="hits",
+#                  hue="url", dodge=False, legend=False,
+#                  edgecolor="black", linewidth=.5,
+#                  palette=sns.color_palette("viridis", len(df)))
+
+
+#     # value annotations
+#     for p in ax.patches:
+#         w = p.get_width()
+#         ax.text(w + df["hits"].max()*0.01,
+#                 p.get_y() + p.get_height()/2,
+#                 f"{int(w):,}",
+#                 va="center", ha="left")
+
+#     ax.set(
+#         title=f"Most Accessed URLs – {day} (Top {top})",
+#         xlabel="Hits (requests)",
+#         ylabel=""
+#     )
+#     plt.tight_layout()
+
+#     # 4️⃣  save
+#     if save:
+#         ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# # ------------------------------------------------------------------
+# #  Country‑level bar‑chart – ALL countries for the latest day
+# # ------------------------------------------------------------------
+# def plt_country_req_latest_day(db, *,
+#                                save=True,
+#                                prefix="country_requests_day",
+#                                static_subdir=""):
+#     """
+#     Plot hits per *country* for the most‑recent calendar day appearing
+#     in logs.time.  ALL countries are shown (no LIMIT).
+
+#     Saved file:  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
+#     """
+#     # ── 1.  latest day in the table ────────────────────────────
+#     latest_day = _run_sql(db,
+#         "SELECT DATE(MAX(time)) AS d FROM logs").iloc[0, 0]
+#     if latest_day is None:
+#         print("logs table empty."); return
+
+#     # ── 2.  counts per country ─────────────────────────────────
+#     df = _run_sql(db, f"""
+#         SELECT country, COUNT(*) AS cnt
+#         FROM   logs
+#         WHERE  DATE(time) = '{latest_day}'
+#         GROUP  BY country
+#         ORDER  BY cnt DESC
+#     """)
+#     if df.empty:
+#         print(f"No rows for {latest_day}."); return
+
+#     # ── 3.  plot ───────────────────────────────────────────────
+#     plt.figure(figsize=(12, 0.6*len(df) + 3))
+#     ax = sns.barplot(data=df, y="country", x="cnt",
+#                      edgecolor='black', linewidth=.5)
+
+#     for p in ax.patches:
+#         w = p.get_width()
+#         ax.text(w + df["cnt"].max()*0.01,
+#                 p.get_y() + p.get_height()/2,
+#                 f"{int(w):,}",
+#                 va="center", ha="left")
+
+#     ax.set(title=f"Hits by Country – {latest_day} (all countries)",
+#            xlabel="Hits",
+#            ylabel="")
+
+#     plt.tight_layout()
+
+#     # ── 4.  save (optional) ────────────────────────────────────
+#     if save:
+#         ts   = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{latest_day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+
+# # ───────────────────────────────────────────────────────────────
+# #  Suspicious IPs by Country – last 30 days, Top‑10
+# # ───────────────────────────────────────────────────────────────
+# from datetime import datetime, timedelta
+
+# def plt_suspicious_countries_last30d(db_path: str,
+#                                      *,
+#                                      days: int = 30,
+#                                      top:  int = 10,
+#                                      save: bool = True,
+#                                      prefix: str = "suspicious_countries_last30d",
+#                                      static_subdir: str = ""):
+#     """
+#     Horizontal bar‑chart of **unique** suspicious IPs per country
+#     for the last `days` (default = 30) days of data in `logs`.
+#     """
+#     # 1️⃣  rolling‑window bounds
+#     latest_day = _run_sql(db_path,
+#                           "SELECT DATE(MAX(time)) AS d FROM logs"
+#                          ).iloc[0, 0]
+#     if latest_day is None:
+#         print("logs table empty."); return
+#     start_day = (datetime.fromisoformat(latest_day)
+#                  - timedelta(days=days)).strftime("%Y-%m-%d")
+
+#     # 2️⃣  DISTINCT‑IP counts  (use the right column!)
+#     df = _run_sql(db_path, f"""
+#         SELECT l.country,
+#                COUNT(DISTINCT s.suspiciousIp) AS cnt
+#         FROM   ip_suspicious AS s
+#         JOIN   logs           AS l  ON l.ip = s.suspiciousIp
+#         WHERE  DATE(l.time) BETWEEN '{start_day}' AND '{latest_day}'
+#         GROUP  BY l.country
+#         ORDER  BY cnt DESC
+#         LIMIT  {top}
+#     """)
+#     if df.empty:
+#         print(f"No suspicious IP rows between {start_day} and {latest_day}."); return
+
+#     # 3️⃣  plotting (unchanged)
+#         # 3️⃣  plotting
+#     plt.figure(figsize=(12, 0.6*len(df)+3))
+
+#     # 🔧 <‑‑‑ ONLY THIS LINE CHANGED
+#     ax = sns.barplot(
+#         data=df,
+#         y="country", x="cnt",
+#         hue="country",            # tell Seaborn *which* variable gets the colours
+#         palette=sns.color_palette("rocket", len(df)),
+#         legend=False,             # we don’t need a legend for country names
+#         edgecolor="black", linewidth=.5
+#     )
+
+
+#     for p in ax.patches:
+#         w = p.get_width()
+#         ax.text(w + df["cnt"].max()*0.01,
+#                 p.get_y() + p.get_height()/2,
+#                 f"{int(w):,}",
+#                 va="center", ha="left")
+
+#     ax.set(title=f"Suspicious IPs by Country – last {days} days (Top {top})",
+#            xlabel="Unique suspicious IPs",
+#            ylabel="")
+#     plt.tight_layout()
+
+#     # 4️⃣  save
+#     if save:
+#         ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{latest_day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# # ------------------------------------------------------------------
+# #  Helpers
+# # ------------------------------------------------------------------
+# def _latest_day_with_categories(db_path: str) -> str | None:
+#     """
+#     Return the most‑recent DATE(time) that actually has matching rows
+#     in ip_eachHour_category. Returns None if none found.
+#     """
+#     sql = """
+#     SELECT MAX(day) AS d FROM (
+#         SELECT DATE(l.time) AS day
+#         FROM   logs l
+#         JOIN   ip_eachHour_category ic
+#                ON ic.ip = l.ip
+#               AND (
+#                    CAST(strftime('%H', l.time) AS INT) || '-' ||
+#                    CAST((CAST(strftime('%H', l.time) AS INT)+1)%24 AS INT)
+#                   ) = ic.hour
+#     );
+#     """
+#     df = _run_sql(db_path, sql)
+#     return df.iloc[0, 0] if not df.empty else None
+
+# def _join_logs_to_categories(db_path: str, day: str):
+#     """
+#     Return a DataFrame [hour, category] for one calendar day.
+#     """
+#     return _run_sql(db_path, f"""
+#         SELECT ic.hour, ic.category
+#         FROM   ip_eachHour_category ic
+#         JOIN   logs l
+#                ON l.ip = ic.ip
+#               AND (
+#                    CAST(strftime('%H', l.time) AS INT) || '-' ||
+#                    CAST((CAST(strftime('%H', l.time) AS INT)+1)%24 AS INT)
+#                   ) = ic.hour
+#         WHERE  DATE(l.time) = '{day}'
+#     """)
+
+# # ------------------------------------------------------------------
+# #  Core plotting routine
+# # ------------------------------------------------------------------
+# def save_category_breakdown_one(db_path: str,
+#                                 day: str,
+#                                 bucket: str = 'All',
+#                                 prefix: str = "category_breakdown",
+#                                 static_subdir: str = ""):
+#     """
+#     Save ONE bar‑chart for (day, bucket) into static/.
+#     bucket = 'All' or e.g. '13-14'
+#     """
+#     df = _join_logs_to_categories(db_path, day)
+#     if bucket != 'All':
+#         df = df[df['hour'] == bucket]
+#     if df.empty:
+#         print(f"[skip] {day} bucket={bucket} has no rows."); return
+
+#     plot_df = (df.groupby('category').size()
+#                  .reset_index(name='cnt')
+#                  .sort_values('cnt', ascending=False))
+
+#     plt.figure(figsize=(12, 6))
+#     sns.barplot(data=plot_df, x='category', y='cnt',
+#                 edgecolor='black', linewidth=0.5)
+#     for p in plt.gca().patches:
+#         h = p.get_height()
+#         plt.text(p.get_x()+p.get_width()/2.,
+#                  h + plot_df['cnt'].max()*0.01,
+#                  f'{int(h):,}', ha='center', va='bottom')
+
+#     slice_txt = f"{day} • All hours" if bucket == 'All' else f"{day} • Hour {bucket}"
+#     plt.title(f"Traffic Categories • {slice_txt}", weight='bold', pad=20)
+#     plt.ylabel("Count"); plt.xlabel("Category")
+#     plt.xticks(rotation=45, ha='right')
+
+#     label = bucket.replace('-', '_') if bucket != 'All' else 'all'
+#     ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#     fname = f"{prefix}_{day}_{label}_{ts}.png"
+#     if static_subdir:
+#         fname = f"{static_subdir.rstrip('/')}/{fname}"
+#     _save_plot(fname)
+#     print(f"✔ Saved → static/{fname}")
+
+# # ------------------------------------------------------------------
+# #  Batch exporter: latest day, all buckets
+# # ------------------------------------------------------------------
+# def export_category_breakdown_latest_day_all_hours(db_path: str,
+#                                                    prefix="category_breakdown",
+#                                                    static_subdir=""):
+#     """
+#     Detect the latest calendar day in logs.time that also appears in
+#     ip_eachHour_category, then save:
+#       • one 'All hours' plot
+#       • one plot per hour bucket that exists that day.
+#     Put THIS function in PLOTS_TO_RUN.
+#     """
+#     latest_day = _latest_day_with_categories(db_path)
+#     if latest_day is None:
+#         print("❌  No day with category data found."); return
+
+#     df_day = _join_logs_to_categories(db_path, latest_day)
+#     buckets = sorted(df_day['hour'].unique(), key=lambda s: int(s.split('-')[0]))
+
+#     print(f"📆 Exporting category plots for {latest_day} …")
+#     save_category_breakdown_one(db_path, latest_day, 'All',
+#                                 prefix=prefix, static_subdir=static_subdir)
+#     for b in buckets:
+#         save_category_breakdown_one(db_path, latest_day, b,
+#                                     prefix=prefix, static_subdir=static_subdir)
+#     print("✅  All category plots done.")
+
+
+
+# def plt_detection_counts_last7d(db_path: str,
+#                                 *,
+#                                 days:   int  = 7,
+#                                 top:    int  = 15,
+#                                 save:   bool = True,
+#                                 prefix: str  = "top_suspects_last7d",
+#                                 static_subdir: str = ""):
+#     """
+#     Bar‑chart of IPs with the **most suspicion events** in the last `days`
+#     (default = 7). One event = one row in `ip_suspicious` within that window.
+#     """
+
+#     # 1️⃣ Date window
+#     end_day   = datetime.utcnow().date()
+#     start_day = end_day - timedelta(days=days - 1)
+#     sd, ed    = start_day.isoformat(), end_day.isoformat()
+
+#     # 2️⃣ Query suspicion events per IP using correct time column
+#     df = _run_sql(db_path, f"""
+#         SELECT suspiciousIp   AS ip,
+#                COUNT(*)       AS events
+#         FROM   ip_suspicious
+#         WHERE  DATE(time) BETWEEN '{sd}' AND '{ed}'
+#         GROUP  BY ip
+#         ORDER  BY events DESC
+#         LIMIT  {top}
+#     """)
+#     if df.empty:
+#         print(f"No suspicion events between {sd} and {ed}."); return
+
+#     # 3️⃣ Plotting
+#     plt.figure(figsize=(12, 0.6*len(df)+3))
+#     ax = sns.barplot(data=df, y="ip", x="events",
+#                  hue="ip", dodge=False,
+#                  edgecolor="black", linewidth=0.5,
+#                  palette=sns.color_palette("rocket", len(df)))
+
+
+#     for p, val in zip(ax.patches, df["events"]):
+#         ax.text(p.get_width() + df["events"].max()*0.01,
+#                 p.get_y() + p.get_height()/2,
+#                 f"{val:,}",
+#                 va="center", ha="left")
+
+#     ax.set(
+#         title=f"Most Flagged IPs • last {days} days ({sd} → {ed})",
+#         xlabel="Detection Count",
+#         ylabel="IP Address"
+#     )
+#     plt.tight_layout()
+
+#     # 4️⃣ Save
+#     if save:
+#         ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{ed}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# def plt_heatmap(db):
+#     """Plot heatmap of requests by weekday and hour."""
+#     df = _run_sql(db, """
+#         SELECT strftime('%w', time) wd, strftime('%H', time) hr, COUNT(*) cnt 
+#         FROM logs 
+#         GROUP BY wd, hr""")
+#     if df.empty: return
     
-    # Convert to proper types and pivot
-    df["wd"] = df["wd"].astype(int)
-    df["hr"] = df["hr"].astype(int)
-    pivot = df.pivot(index="wd", columns="hr", values="cnt").fillna(0)
+#     # Convert to proper types and pivot
+#     df["wd"] = df["wd"].astype(int)
+#     df["hr"] = df["hr"].astype(int)
+#     pivot = df.pivot(index="wd", columns="hr", values="cnt").fillna(0)
     
-    # Create custom labels for weekdays
-    weekday_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+#     # Create custom labels for weekdays
+#     weekday_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     
-    plt.figure(figsize=(16, 8))
-    sns.heatmap(pivot, cmap="YlOrRd", linewidths=0.5, 
-                xticklabels=range(24), yticklabels=weekday_labels)
+#     plt.figure(figsize=(16, 8))
+#     sns.heatmap(pivot, cmap="YlOrRd", linewidths=0.5, 
+#                 xticklabels=range(24), yticklabels=weekday_labels)
     
-    plt.title("Request Heatmap: Hourly Activity by Weekday", weight="bold", pad=20)
-    plt.ylabel("Weekday")
-    plt.xlabel("Hour of Day")
-    _save_plot("heatmap_hits.png")
+#     plt.title("Request Heatmap: Hourly Activity by Weekday", weight="bold", pad=20)
+#     plt.ylabel("Weekday")
+#     plt.xlabel("Hour of Day")
+#     _save_plot("heatmap_hits.png")
 
-def plt_browser_top10_latest_day(db, *,
-                                 N: int = 10,
-                                 save=True,
-                                 prefix="browser_requests_top10_day",
-                                 static_subdir=""):
-    """
-    Top‑N browsers (plus 'Other') for the MOST‑RECENT day
-    found in logs.time.  Saves to:
-        static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
-    """
-    # ── 1. detect latest event day ─────────────────────────────
-    latest_day_row = _run_sql(db,
-        "SELECT DATE(MAX(time)) AS d FROM logs")
-    if latest_day_row.empty or latest_day_row.iloc[0,0] is None:
-        print("logs table empty."); return
-    day = latest_day_row.iloc[0,0]           # e.g. '2025-07-03'
+# def plt_browser_top10_latest_day(db, *,
+#                                  N: int = 10,
+#                                  save=True,
+#                                  prefix="browser_requests_top10_day",
+#                                  static_subdir=""):
+#     """
+#     Top‑N browsers (plus 'Other') for the MOST‑RECENT day
+#     found in logs.time.  Saves to:
+#         static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
+#     """
+#     # ── 1. detect latest event day ─────────────────────────────
+#     latest_day_row = _run_sql(db,
+#         "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if latest_day_row.empty or latest_day_row.iloc[0,0] is None:
+#         print("logs table empty."); return
+#     day = latest_day_row.iloc[0,0]           # e.g. '2025-07-03'
 
-    # ── 2. pull user‑agents for that day ───────────────────────
-    df_raw = _run_sql(db, f"""
-        SELECT agent FROM logs
-        WHERE  DATE(time) = '{day}'
-    """)
-    if df_raw.empty:
-        print(f"No rows for {day}."); return
+#     # ── 2. pull user‑agents for that day ───────────────────────
+#     df_raw = _run_sql(db, f"""
+#         SELECT agent FROM logs
+#         WHERE  DATE(time) = '{day}'
+#     """)
+#     if df_raw.empty:
+#         print(f"No rows for {day}."); return
 
-    df_raw["browser"] = df_raw["agent"].apply(_extract_browser_generic)
+#     df_raw["browser"] = df_raw["agent"].apply(_extract_browser_generic)
 
-    # ── 3. top‑N logic (same as before) ────────────────────────
-    counts = df_raw["browser"].value_counts()
-    other_cnt       = counts.get("Other", 0)
-    counts_no_other = counts.drop(labels="Other", errors="ignore")
-    topN            = counts_no_other.head(N)
+#     # ── 3. top‑N logic (same as before) ────────────────────────
+#     counts = df_raw["browser"].value_counts()
+#     other_cnt       = counts.get("Other", 0)
+#     counts_no_other = counts.drop(labels="Other", errors="ignore")
+#     topN            = counts_no_other.head(N)
 
-    df_plot = (topN.reset_index(name="cnt")
-                    .rename(columns={"index":"browser"})
-                    .sort_values("cnt", ascending=False)
-                    .reset_index(drop=True))
-    df_plot = pd.concat(
-        [df_plot, pd.DataFrame([{"browser":"Other","cnt":other_cnt}])],
-        ignore_index=True
-    )
-    bar_order = df_plot["browser"].tolist()
+#     df_plot = (topN.reset_index(name="cnt")
+#                     .rename(columns={"index":"browser"})
+#                     .sort_values("cnt", ascending=False)
+#                     .reset_index(drop=True))
+#     df_plot = pd.concat(
+#         [df_plot, pd.DataFrame([{"browser":"Other","cnt":other_cnt}])],
+#         ignore_index=True
+#     )
+#     bar_order = df_plot["browser"].tolist()
 
-    # ── 4. plot ────────────────────────────────────────────────
-    plt.figure(figsize=(12, max(6, .6*len(df_plot))))
-    sns.barplot(data=df_plot, y="browser", x="cnt",
-                order=bar_order, edgecolor="black",
-                linewidth=.5, color=sns.color_palette("viridis",1)[0])
+#     # ── 4. plot ────────────────────────────────────────────────
+#     plt.figure(figsize=(12, max(6, .6*len(df_plot))))
+#     sns.barplot(data=df_plot, y="browser", x="cnt",
+#                 order=bar_order, edgecolor="black",
+#                 linewidth=.5, color=sns.color_palette("viridis",1)[0])
 
-    for p in plt.gca().patches:
-        w = p.get_width()
-        plt.text(w + df_plot["cnt"].max()*0.02,
-                 p.get_y()+p.get_height()/2,
-                 f"{int(w):,}", va="center", ha="left")
+#     for p in plt.gca().patches:
+#         w = p.get_width()
+#         plt.text(w + df_plot["cnt"].max()*0.02,
+#                  p.get_y()+p.get_height()/2,
+#                  f"{int(w):,}", va="center", ha="left")
 
-    plt.title(f"Top {N} Browsers Hits ({day})", weight="bold", pad=15)
-    plt.xlabel("Hits"); plt.ylabel("")
+#     plt.title(f"Top {N} Browsers Hits ({day})", weight="bold", pad=15)
+#     plt.xlabel("Hits"); plt.ylabel("")
 
-    # ── 5. save ────────────────────────────────────────────────
-    if save:
-        fname = f"{prefix}_{day}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
+#     # ── 5. save ────────────────────────────────────────────────
+#     if save:
+#         fname = f"{prefix}_{day}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
 
-    plt.show()
+#     plt.show()
 
-# -----------------------------------------------------------------
-#  Pie / donut of ALL platforms on the latest day  – keeps “Other”
-# -----------------------------------------------------------------
-def plt_platform_pie_latest_day(db_path: str,
-                                *,
-                                save: bool = True,
-                                prefix: str = "platform_pie_day",
-                                static_subdir: str = ""):
-    """
-    Pie chart of platform share for the most‑recent calendar day
-    in `logs.time`, using _split_agent() to classify UA strings.
+# # -----------------------------------------------------------------
+# #  Pie / donut of ALL platforms on the latest day  – keeps “Other”
+# # -----------------------------------------------------------------
+# def plt_platform_pie_latest_day(db_path: str,
+#                                 *,
+#                                 save: bool = True,
+#                                 prefix: str = "platform_pie_day",
+#                                 static_subdir: str = ""):
+#     """
+#     Pie chart of platform share for the most‑recent calendar day
+#     in `logs.time`, using _split_agent() to classify UA strings.
 
-    • “Other” is kept as its own slice when present.
-    • Legend shows  <Platform – x.x % (hits)>  with colours matching slices.
-    • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
-    """
-    # 1️⃣  detect latest day in logs
-    day_row = _run_sql(db_path,
-        "SELECT DATE(MAX(time)) AS d FROM logs")
-    if day_row.empty or day_row.iloc[0, 0] is None:
-        print("logs table empty."); return
-    day = day_row.iloc[0, 0]                          # e.g. '2025-07-03'
+#     • “Other” is kept as its own slice when present.
+#     • Legend shows  <Platform – x.x % (hits)>  with colours matching slices.
+#     • Saved to  static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>_<UTCts>.png
+#     """
+#     # 1️⃣  detect latest day in logs
+#     day_row = _run_sql(db_path,
+#         "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if day_row.empty or day_row.iloc[0, 0] is None:
+#         print("logs table empty."); return
+#     day = day_row.iloc[0, 0]                          # e.g. '2025-07-03'
 
-    # 2️⃣  pull user‑agents for that day (cap rows if huge)
-    df_raw = _run_sql(db_path, f"""
-        SELECT agent
-        FROM   logs
-        WHERE  DATE(time) = '{day}'
-        LIMIT  100000
-    """)
-    if df_raw.empty:
-        print(f"No rows for {day}."); return
+#     # 2️⃣  pull user‑agents for that day (cap rows if huge)
+#     df_raw = _run_sql(db_path, f"""
+#         SELECT agent
+#         FROM   logs
+#         WHERE  DATE(time) = '{day}'
+#         LIMIT  100000
+#     """)
+#     if df_raw.empty:
+#         print(f"No rows for {day}."); return
 
-    # 3️⃣  classify → platform column
-    df_raw["plat"] = df_raw["agent"].apply(
-        lambda ua: _split_agent(ua)[0]
-    )
+#     # 3️⃣  classify → platform column
+#     df_raw["plat"] = df_raw["agent"].apply(
+#         lambda ua: _split_agent(ua)[0]
+#     )
 
-    # 4️⃣  counts for each platform  (includes “Other” naturally)
-    plat_df = (
-        df_raw["plat"]
-        .value_counts()
-        .rename_axis("Platform")  # sets index name
-        .reset_index(name="Hits") # converts to column + renames count column
-    )
-
-
-    total = plat_df["Hits"].sum()
-
-    # ✅ 5️⃣ FIX: generate legend labels without `row.Platform`
-    legend_labels = [
-        f"{row['Platform']} – {row['Hits']/total*100:.1f}% ({row['Hits']:,})"
-        for _, row in plat_df.iterrows()
-    ]
-
-    colours = sns.color_palette("viridis", len(plat_df))
-
-    # 6️⃣  draw donut‑pie
-    plt.figure(figsize=(9, 9))
-    wedges, _ = plt.pie(
-        plat_df["Hits"],
-        startangle=90,
-        colors=colours,
-        wedgeprops=dict(width=0.4, edgecolor="w"),   # donut style
-        labels=None                                  # keep slices label‑free
-    )
-
-    plt.title(f"Platform Distribution – {day}",
-              weight="bold", pad=20)
-
-    #  Legend – same colours as wedges
-    plt.legend(
-        wedges,
-        legend_labels,
-        title="Platforms",
-        loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
-        frameon=True,
-    )
-
-    # 7️⃣  save (UTC timestamp => cache‑safe)
-    if save:
-        ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
-
-    plt.show()
+#     # 4️⃣  counts for each platform  (includes “Other” naturally)
+#     plat_df = (
+#         df_raw["plat"]
+#         .value_counts()
+#         .rename_axis("Platform")  # sets index name
+#         .reset_index(name="Hits") # converts to column + renames count column
+#     )
 
 
-def plt_size_vs_status_latest_day(db,
-                                  *,
-                                  save=True,
-                                  prefix="size_vs_status_day",
-                                  static_subdir=""):
-    """
-    Scatter‑plot of response size vs. status code
-    for the latest calendar day present in logs.time.
-    Each dot = one request (alpha=.6 to reveal density).
+#     total = plat_df["Hits"].sum()
 
-    Output file:
-        static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
-    """
-    # ── 1. find the latest event day ───────────────────────────
-    latest_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
-    if latest_row.empty or latest_row.iloc[0, 0] is None:
-        print("logs table empty."); return
-    day = latest_row.iloc[0, 0]                       # e.g. '2025‑07‑03'
+#     # ✅ 5️⃣ FIX: generate legend labels without `row.Platform`
+#     legend_labels = [
+#         f"{row['Platform']} – {row['Hits']/total*100:.1f}% ({row['Hits']:,})"
+#         for _, row in plat_df.iterrows()
+#     ]
 
-    # ── 2. pull rows for that day ─────────────────────────────
-    df = _run_sql(db, f"""
-        SELECT status,
-               CAST(size AS REAL) AS size
-        FROM   logs
-        WHERE  DATE(time) = '{day}'
-          AND  size IS NOT NULL
-    """)
-    if df.empty:
-        print(f"No size data for {day}."); return
+#     colours = sns.color_palette("viridis", len(plat_df))
 
-    # ── 3. plot ───────────────────────────────────────────────
-    plt.figure(figsize=(14, 8))
-    sns.scatterplot(data=df,
-                    x="status", y="size",
-                    alpha=.6, s=50,
-                    hue="status", palette="viridis",
-                    legend=False)
+#     # 6️⃣  draw donut‑pie
+#     plt.figure(figsize=(9, 9))
+#     wedges, _ = plt.pie(
+#         plat_df["Hits"],
+#         startangle=90,
+#         colors=colours,
+#         wedgeprops=dict(width=0.4, edgecolor="w"),   # donut style
+#         labels=None                                  # keep slices label‑free
+#     )
 
-    plt.title(f"Response Size vs. Status Code  – {day}",
-              weight="bold", pad=18)
-    plt.xlabel("HTTP Status Code")
-    plt.ylabel("Response Size (bytes)")
-    plt.tight_layout()
+#     plt.title(f"Platform Distribution – {day}",
+#               weight="bold", pad=20)
 
-    # ── 4. save ───────────────────────────────────────────────
-    if save:
-        fname = f"{prefix}_{day}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
+#     #  Legend – same colours as wedges
+#     plt.legend(
+#         wedges,
+#         legend_labels,
+#         title="Platforms",
+#         loc="center left",
+#         bbox_to_anchor=(1.02, 0.5),
+#         frameon=True,
+#     )
 
-    plt.show()
+#     # 7️⃣  save (UTC timestamp => cache‑safe)
+#     if save:
+#         ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
+
+
+# def plt_size_vs_status_latest_day(db,
+#                                   *,
+#                                   save=True,
+#                                   prefix="size_vs_status_day",
+#                                   static_subdir=""):
+#     """
+#     Scatter‑plot of response size vs. status code
+#     for the latest calendar day present in logs.time.
+#     Each dot = one request (alpha=.6 to reveal density).
+
+#     Output file:
+#         static/<static_subdir>/<prefix>_<YYYY‑MM‑DD>.png
+#     """
+#     # ── 1. find the latest event day ───────────────────────────
+#     latest_row = _run_sql(db, "SELECT DATE(MAX(time)) AS d FROM logs")
+#     if latest_row.empty or latest_row.iloc[0, 0] is None:
+#         print("logs table empty."); return
+#     day = latest_row.iloc[0, 0]                       # e.g. '2025‑07‑03'
+
+#     # ── 2. pull rows for that day ─────────────────────────────
+#     df = _run_sql(db, f"""
+#         SELECT status,
+#                CAST(size AS REAL) AS size
+#         FROM   logs
+#         WHERE  DATE(time) = '{day}'
+#           AND  size IS NOT NULL
+#     """)
+#     if df.empty:
+#         print(f"No size data for {day}."); return
+
+#     # ── 3. plot ───────────────────────────────────────────────
+#     plt.figure(figsize=(14, 8))
+#     sns.scatterplot(data=df,
+#                     x="status", y="size",
+#                     alpha=.6, s=50,
+#                     hue="status", palette="viridis",
+#                     legend=False)
+
+#     plt.title(f"Response Size vs. Status Code  – {day}",
+#               weight="bold", pad=18)
+#     plt.xlabel("HTTP Status Code")
+#     plt.ylabel("Response Size (bytes)")
+#     plt.tight_layout()
+
+#     # ── 4. save ───────────────────────────────────────────────
+#     if save:
+#         fname = f"{prefix}_{day}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
 
     
-def plt_request_methods(db):
-    """Plot distribution of HTTP request methods."""
-    df = _run_sql(db, """
-        SELECT method, COUNT(*) as count 
-        FROM logs 
-        GROUP BY method 
-        ORDER BY count DESC""")
-    if df.empty: return
+# def plt_request_methods(db):
+#     """Plot distribution of HTTP request methods."""
+#     df = _run_sql(db, """
+#         SELECT method, COUNT(*) as count 
+#         FROM logs 
+#         GROUP BY method 
+#         ORDER BY count DESC""")
+#     if df.empty: return
     
-    plt.figure(figsize=(12, 6))
-    ax = sns.barplot(data=df, x="method", y="count", edgecolor='black', linewidth=0.5)
+#     plt.figure(figsize=(12, 6))
+#     ax = sns.barplot(data=df, x="method", y="count", edgecolor='black', linewidth=0.5)
     
-    # Add value annotations
-    for p in ax.patches:
-        height = p.get_height()
-        ax.text(p.get_x() + p.get_width()/2., height + max(df["count"])*0.01,
-                f'{int(height):,}', ha='center', va='bottom')
+#     # Add value annotations
+#     for p in ax.patches:
+#         height = p.get_height()
+#         ax.text(p.get_x() + p.get_width()/2., height + max(df["count"])*0.01,
+#                 f'{int(height):,}', ha='center', va='bottom')
     
-    plt.title("HTTP Request Methods Distribution", weight="bold", pad=20)
-    plt.xlabel("Method")
-    plt.ylabel("Count")
-    _save_plot("request_methods.png")
+#     plt.title("HTTP Request Methods Distribution", weight="bold", pad=20)
+#     plt.xlabel("Method")
+#     plt.ylabel("Count")
+#     _save_plot("request_methods.png")
     
-def plt_suspicious_reasons(db):
-    """Plot reasons for IPs being marked as suspicious in the last 7 days."""
+# def plt_suspicious_reasons(db):
+#     """Plot reasons for IPs being marked as suspicious in the last 7 days."""
 
-    # 1️⃣ Get date window from logs table
-    res = _run_sql(db, "SELECT MIN(DATE(time)) AS min_day, MAX(DATE(time)) AS max_day FROM logs")
-    max_day = res.iloc[0]["max_day"]
-    min_day = (datetime.fromisoformat(max_day) - timedelta(days=6)).strftime("%Y-%m-%d")
+#     # 1️⃣ Get date window from logs table
+#     res = _run_sql(db, "SELECT MIN(DATE(time)) AS min_day, MAX(DATE(time)) AS max_day FROM logs")
+#     max_day = res.iloc[0]["max_day"]
+#     min_day = (datetime.fromisoformat(max_day) - timedelta(days=6)).strftime("%Y-%m-%d")
     
-    # 2️⃣ Fetch reason counts for suspicious IPs linked to logs within the last 7 days
-    df = _run_sql(db, f"""
-        SELECT s.reason,
-               COUNT(*) AS count
-        FROM   ip_suspicious AS s
-        JOIN   logs          AS l ON l.ip = s.suspiciousIp
-        WHERE  DATE(l.time) BETWEEN '{min_day}' AND '{max_day}'
-        GROUP  BY s.reason
-        ORDER  BY count DESC
-    """)
-    if df.empty:
-        print(f"No suspicious IP activity between {min_day} and {max_day}.")
-        return
+#     # 2️⃣ Fetch reason counts for suspicious IPs linked to logs within the last 7 days
+#     df = _run_sql(db, f"""
+#         SELECT s.reason,
+#                COUNT(*) AS count
+#         FROM   ip_suspicious AS s
+#         JOIN   logs          AS l ON l.ip = s.suspiciousIp
+#         WHERE  DATE(l.time) BETWEEN '{min_day}' AND '{max_day}'
+#         GROUP  BY s.reason
+#         ORDER  BY count DESC
+#     """)
+#     if df.empty:
+#         print(f"No suspicious IP activity between {min_day} and {max_day}.")
+#         return
 
-    # 3️⃣ Plotting
-    plt.figure(figsize=(12, 6))
-    ax = sns.barplot(data=df, y="reason", x="count", edgecolor='black', linewidth=0.5)
+#     # 3️⃣ Plotting
+#     plt.figure(figsize=(12, 6))
+#     ax = sns.barplot(data=df, y="reason", x="count", edgecolor='black', linewidth=0.5)
     
-    for p in ax.patches:
-        width = p.get_width()
-        plt.text(width + max(df["count"]) * 0.01,
-                 p.get_y() + p.get_height() / 2,
-                 f'{int(width):,}', ha='left', va='center')
+#     for p in ax.patches:
+#         width = p.get_width()
+#         plt.text(width + max(df["count"]) * 0.01,
+#                  p.get_y() + p.get_height() / 2,
+#                  f'{int(width):,}', ha='left', va='center')
     
-    plt.title(f"Reasons for Suspicious IPs – {min_day} to {max_day}", weight="bold", pad=20)
-    plt.xlabel("Count(non-unique ips considered)")
-    plt.ylabel("Reason")
-    plt.tight_layout()
+#     plt.title(f"Reasons for Suspicious IPs – {min_day} to {max_day}", weight="bold", pad=20)
+#     plt.xlabel("Count(non-unique ips considered)")
+#     plt.ylabel("Reason")
+#     plt.tight_layout()
 
-    # 4️⃣ Save
-    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-    fname = f"suspicious_reasons_{min_day}_to_{max_day}_{ts}.png"
-    _save_plot(fname)
-    print(f"✔ Saved → static/{fname}")
+#     # 4️⃣ Save
+#     ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#     fname = f"suspicious_reasons_{min_day}_to_{max_day}_{ts}.png"
+#     _save_plot(fname)
+#     print(f"✔ Saved → static/{fname}")
 
-    plt.show()
-
-
-def plt_suspects_last15_days_bars(db,
-                                  *,
-                                  save=True,
-                                  prefix="suspects_last15d_bars",
-                                  static_subdir=""):
-    """
-    Bar chart: # of suspicious IPs per calendar day (last 15 days).
-
-    • Missing days are shown as 0.
-    • Each bar has its value printed on top.
-    • Pastel colour palette for a fresh look.
-    """
-    # ── 1. pull counts from DB ─────────────────────────────────
-    df = _run_sql(db, """
-        SELECT DATE(time) AS day, COUNT(*) AS cnt
-        FROM   ip_suspicious
-        WHERE  DATE(time) >= DATE('now', '-14 day')
-        GROUP  BY day
-        ORDER  BY day
-    """)
-    if df.empty:
-        print("No suspicious‑IP data in the last 15 days."); return
-
-    # ── 2. ensure every day is present ─────────────────────────
-    all_days = pd.date_range(end=pd.Timestamp.today().normalize(),
-                             periods=15, freq="D")
-    df = (df.set_index("day")
-            .reindex(all_days.strftime("%Y-%m-%d"), fill_value=0)
-            .rename_axis("day")
-            .reset_index())
-
-    # ── 3. plot ────────────────────────────────────────────────
-    plt.figure(figsize=(12, 6))
-    palette = sns.color_palette("pastel", len(df))
-    ax = sns.barplot(
-        data=df,
-        x="day", y="cnt",
-        hue="day",       
-        palette=palette,
-        legend=False,      
-        edgecolor="black", linewidth=.5
-    )
+#     plt.show()
 
 
-    # value labels
-    for p, val in zip(ax.patches, df["cnt"]):
-        ax.text(p.get_x() + p.get_width()/2,
-                p.get_height() + max(df["cnt"])*0.02,
-                f"{val:,}",
-                ha="center", va="bottom", fontsize=10)
+# def plt_suspects_last15_days_bars(db,
+#                                   *,
+#                                   save=True,
+#                                   prefix="suspects_last15d_bars",
+#                                   static_subdir=""):
+#     """
+#     Bar chart: # of suspicious IPs per calendar day (last 15 days).
 
-    ax.set(
-        title="Suspicious IPs per Day – Last 15 Days",
-        xlabel="Date",
-        ylabel="Count"
-    )
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
+#     • Missing days are shown as 0.
+#     • Each bar has its value printed on top.
+#     • Pastel colour palette for a fresh look.
+#     """
+#     # ── 1. pull counts from DB ─────────────────────────────────
+#     df = _run_sql(db, """
+#         SELECT DATE(time) AS day, COUNT(*) AS cnt
+#         FROM   ip_suspicious
+#         WHERE  DATE(time) >= DATE('now', '-14 day')
+#         GROUP  BY day
+#         ORDER  BY day
+#     """)
+#     if df.empty:
+#         print("No suspicious‑IP data in the last 15 days."); return
 
-    # ── 4. save ────────────────────────────────────────────────
-    if save:
-        ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
+#     # ── 2. ensure every day is present ─────────────────────────
+#     all_days = pd.date_range(end=pd.Timestamp.today().normalize(),
+#                              periods=15, freq="D")
+#     df = (df.set_index("day")
+#             .reindex(all_days.strftime("%Y-%m-%d"), fill_value=0)
+#             .rename_axis("day")
+#             .reset_index())
 
-    plt.show()
+#     # ── 3. plot ────────────────────────────────────────────────
+#     plt.figure(figsize=(12, 6))
+#     palette = sns.color_palette("pastel", len(df))
+#     ax = sns.barplot(
+#         data=df,
+#         x="day", y="cnt",
+#         hue="day",       
+#         palette=palette,
+#         legend=False,      
+#         edgecolor="black", linewidth=.5
+#     )
+
+
+#     # value labels
+#     for p, val in zip(ax.patches, df["cnt"]):
+#         ax.text(p.get_x() + p.get_width()/2,
+#                 p.get_height() + max(df["cnt"])*0.02,
+#                 f"{val:,}",
+#                 ha="center", va="bottom", fontsize=10)
+
+#     ax.set(
+#         title="Suspicious IPs per Day – Last 15 Days",
+#         xlabel="Date",
+#         ylabel="Count"
+#     )
+#     plt.xticks(rotation=45, ha="right")
+#     plt.tight_layout()
+
+#     # ── 4. save ────────────────────────────────────────────────
+#     if save:
+#         ts = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
+
+#     plt.show()
 
         
 
 
-def plt_blocked_ips_latest_day(db, *,
-                               save=True,
-                               prefix="blocked_ips_day",
-                               static_subdir=""):
-    """
-    Latest‑day blocked IPs bar‑chart.
-      • colour per‑row by client_block_status
-      • label  = client_blocked_at (HH:MM:SS, 24‑h)
-      • legend colours match bars
-    """
-    # 1️⃣  latest calendar day present
-    day = _run_sql(db,
-        "SELECT DATE(MAX(backend_blocked_at)) AS d FROM blocked_log"
-    ).iloc[0, 0]
-    if day is None:
-        print("blocked_log empty"); return
+# def plt_blocked_ips_latest_day(db, *,
+#                                save=True,
+#                                prefix="blocked_ips_day",
+#                                static_subdir=""):
+#     """
+#     Latest‑day blocked IPs bar‑chart.
+#       • colour per‑row by client_block_status
+#       • label  = client_blocked_at (HH:MM:SS, 24‑h)
+#       • legend colours match bars
+#     """
+#     # 1️⃣  latest calendar day present
+#     day = _run_sql(db,
+#         "SELECT DATE(MAX(backend_blocked_at)) AS d FROM blocked_log"
+#     ).iloc[0, 0]
+#     if day is None:
+#         print("blocked_log empty"); return
 
-    # 2️⃣  rows for that day
-    df = _run_sql(db, f"""
-        SELECT ip,
-               detection_count,
-               COALESCE(TRIM(LOWER(client_block_status)),'‑') AS status,
-               TIME(client_blocked_at)                       AS client_time
-        FROM   blocked_log
-        WHERE  DATE(backend_blocked_at) = '{day}'
-        ORDER  BY detection_count DESC, ip
-    """)
-    if df.empty:
-        print(f"No blocked IPs on {day}."); return
+#     # 2️⃣  rows for that day
+#     df = _run_sql(db, f"""
+#         SELECT ip,
+#                detection_count,
+#                COALESCE(TRIM(LOWER(client_block_status)),'‑') AS status,
+#                TIME(client_blocked_at)                       AS client_time
+#         FROM   blocked_log
+#         WHERE  DATE(backend_blocked_at) = '{day}'
+#         ORDER  BY detection_count DESC, ip
+#     """)
+#     if df.empty:
+#         print(f"No blocked IPs on {day}."); return
 
-    # 3️⃣  status → colour look‑up
-    colour_lut = {
-        'success': '#4caf50',   # green
-        'ok'     : '#4caf50',
-        'failed' : '#e53935',   # red
-        'error'  : '#e53935',
-        '‑'      : '#9e9e9e',   # unknown / blank
-    }
-    bar_colours = df['status'].map(lambda s: colour_lut.get(s, '#9e9e9e'))
+#     # 3️⃣  status → colour look‑up
+#     colour_lut = {
+#         'success': '#4caf50',   # green
+#         'ok'     : '#4caf50',
+#         'failed' : '#e53935',   # red
+#         'error'  : '#e53935',
+#         '‑'      : '#9e9e9e',   # unknown / blank
+#     }
+#     bar_colours = df['status'].map(lambda s: colour_lut.get(s, '#9e9e9e'))
 
-    # 4️⃣  plot (no hue; paint each patch afterwards)
-    plt.figure(figsize=(12, max(6, .6*len(df))))
-    ax = sns.barplot(
-        data=df,
-        y='ip', x='detection_count',
-        order=df['ip'],            # keep our order
-        edgecolor='black', linewidth=.5,
-        color='#ffffff'            # temp colour – will be overwritten
-    )
+#     # 4️⃣  plot (no hue; paint each patch afterwards)
+#     plt.figure(figsize=(12, max(6, .6*len(df))))
+#     ax = sns.barplot(
+#         data=df,
+#         y='ip', x='detection_count',
+#         order=df['ip'],            # keep our order
+#         edgecolor='black', linewidth=.5,
+#         color='#ffffff'            # temp colour – will be overwritten
+#     )
 
-    # paint each bar, then annotate its time
-    for bar, colour, t in zip(ax.patches, bar_colours, df['client_time']):
-        bar.set_facecolor(colour)
-        ax.text(bar.get_width() + df['detection_count'].max()*0.02,
-                bar.get_y() + bar.get_height()/2,
-                t or '–', va='center', ha='left')
+#     # paint each bar, then annotate its time
+#     for bar, colour, t in zip(ax.patches, bar_colours, df['client_time']):
+#         bar.set_facecolor(colour)
+#         ax.text(bar.get_width() + df['detection_count'].max()*0.02,
+#                 bar.get_y() + bar.get_height()/2,
+#                 t or '–', va='center', ha='left')
 
-    # 5️⃣  legend – build only for statuses that actually occur
-    handles, labels = [], []
-    for st in df['status'].unique():
-        handles.append(plt.Rectangle((0,0),1,1, fc=colour_lut.get(st,'#9e9e9e'),
-                                     ec='black', linewidth=.5))
-        labels.append(st)
-    ax.legend(handles, labels, title='Client block status',
-              loc='lower right', frameon=True)
+#     # 5️⃣  legend – build only for statuses that actually occur
+#     handles, labels = [], []
+#     for st in df['status'].unique():
+#         handles.append(plt.Rectangle((0,0),1,1, fc=colour_lut.get(st,'#9e9e9e'),
+#                                      ec='black', linewidth=.5))
+#         labels.append(st)
+#     ax.legend(handles, labels, title='Client block status',
+#               loc='lower right', frameon=True)
 
-    ax.set(title=f"Blocked IPs on {day}",
-           xlabel="Detection count", ylabel="")
-    plt.tight_layout()
+#     ax.set(title=f"Blocked IPs on {day}",
+#            xlabel="Detection count", ylabel="")
+#     plt.tight_layout()
 
-    # 6️⃣  save (timestamp → bypass caching)
-    if save:
-        ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
-        fname = f"{prefix}_{day}_{ts}.png"
-        if static_subdir:
-            fname = f"{static_subdir.rstrip('/')}/{fname}"
-        _save_plot(fname)
-        print(f"✔ Saved → static/{fname}")
+#     # 6️⃣  save (timestamp → bypass caching)
+#     if save:
+#         ts    = datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+#         fname = f"{prefix}_{day}_{ts}.png"
+#         if static_subdir:
+#             fname = f"{static_subdir.rstrip('/')}/{fname}"
+#         _save_plot(fname)
+#         print(f"✔ Saved → static/{fname}")
 
-    plt.show()
-
-
-# ── Generic UA → browser extractor (no hard‑coding) ────────────
-_skip_tokens = set("""
-mozilla compatible version windows linux applewebkit khtml trident
-like mobile safari gecko
-""".split())
-
-_token_re = re.compile(r'([a-z0-9\+\-\.]+)\/[\d\.]+', re.I)
-
-def _extract_browser_generic(ua: str) -> str:
-    """
-    Return the first non‑generic product token from a UA string.
-    Falls back to 'Other' when nothing useful is found.
-    """
-    if not ua:
-        return "Other"
-
-    ua_low = ua.lower()
-
-    # Look for tokens like Name/1.2.3
-    for tok in _token_re.findall(ua_low):
-        if tok not in _skip_tokens and len(tok) > 2:
-            return tok.capitalize()
-
-    # Fallback: any word ≥3 chars not in skip list
-    words = re.findall(r'[a-z][a-z0-9\+\-]{2,}', ua_low)
-    for w in words:
-        if w not in _skip_tokens:
-            return w.capitalize()
-
-    return "Other"
+#     plt.show()
 
 
-# ── all other plotting functions stay unchanged ────────────────
-# (keep them from your previous cell)
+# # ── Generic UA → browser extractor (no hard‑coding) ────────────
+# _skip_tokens = set("""
+# mozilla compatible version windows linux applewebkit khtml trident
+# like mobile safari gecko
+# """.split())
 
-# ----------------------------------------------------------------
-#  RUN EVERYTHING
-# ----------------------------------------------------------------
-DB_PATH = "access_logs.db"   # adjust if needed
+# _token_re = re.compile(r'([a-z0-9\+\-\.]+)\/[\d\.]+', re.I)
 
-PLOTS_TO_RUN = [
-    plt_suspects_last15_days_bars,
-    plt_platform_pie_latest_day,
-    plt_status_pie_latest_day,
-    plt_top_urls_latest_day,
-    plt_country_req_latest_day,
-    plt_suspicious_countries_last30d,
-    export_category_breakdown_latest_day_all_hours,
-    plt_avg_size_trend_latest_day,
-    plt_detection_counts_last7d,
-    plt_heatmap,
-    plt_browser_top10_latest_day,
-    plt_size_vs_status_latest_day,
-    plt_blocked_ips_latest_day,
-    plt_request_methods,
-    plt_suspicious_reasons,
-]
+# def _extract_browser_generic(ua: str) -> str:
+#     """
+#     Return the first non‑generic product token from a UA string.
+#     Falls back to 'Other' when nothing useful is found.
+#     """
+#     if not ua:
+#         return "Other"
 
-for fn in PLOTS_TO_RUN:
-    try:
-        print(f"Running → {fn.__name__}", end=" … ")
-        fn(DB_PATH)
-        print("done ✓")
-    except Exception as e:
-        print(f"FAILED ✗  ({e})")
+#     ua_low = ua.lower()
+
+#     # Look for tokens like Name/1.2.3
+#     for tok in _token_re.findall(ua_low):
+#         if tok not in _skip_tokens and len(tok) > 2:
+#             return tok.capitalize()
+
+#     # Fallback: any word ≥3 chars not in skip list
+#     words = re.findall(r'[a-z][a-z0-9\+\-]{2,}', ua_low)
+#     for w in words:
+#         if w not in _skip_tokens:
+#             return w.capitalize()
+
+#     return "Other"
+
+
+# # ── all other plotting functions stay unchanged ────────────────
+# # (keep them from your previous cell)
+
+# # ----------------------------------------------------------------
+# #  RUN EVERYTHING
+# # ----------------------------------------------------------------
+# DB_PATH = "access_logs.db"   # adjust if needed
+
+# PLOTS_TO_RUN = [
+#     plt_suspects_last15_days_bars,
+#     plt_platform_pie_latest_day,
+#     plt_status_pie_latest_day,
+#     plt_top_urls_latest_day,
+#     plt_country_req_latest_day,
+#     plt_suspicious_countries_last30d,
+#     export_category_breakdown_latest_day_all_hours,
+#     plt_avg_size_trend_latest_day,
+#     plt_detection_counts_last7d,
+#     plt_heatmap,
+#     plt_browser_top10_latest_day,
+#     plt_size_vs_status_latest_day,
+#     plt_blocked_ips_latest_day,
+#     plt_request_methods,
+#     plt_suspicious_reasons,
+# ]
+
+# for fn in PLOTS_TO_RUN:
+#     try:
+#         print(f"Running → {fn.__name__}", end=" … ")
+#         fn(DB_PATH)
+#         print("done ✓")
+#     except Exception as e:
+#         print(f"FAILED ✗  ({e})")
 
 
 
@@ -2553,36 +2692,36 @@ def refresh_and_detect():
     analyzer.run_analysis()
     classifier.run()
 
-    # 3️⃣ Generate/refresh all plots with enhanced versions
-    plot_functions = [
-        plt_suspects_last15_days_bars,
-        plt_platform_pie_latest_day,
-        plt_status_pie_latest_day,
-        plt_top_urls_latest_day,
-        plt_country_req_latest_day,
-        plt_suspicious_countries_last30d,
-        export_category_breakdown_latest_day_all_hours,
-        plt_avg_size_trend_latest_day,
-        plt_detection_counts_last7d,
-        plt_heatmap,
-        plt_browser_top10_latest_day,
-        plt_size_vs_status_latest_day,
-        plt_blocked_ips_latest_day,
-        plt_request_methods,
-        plt_suspicious_reasons,
-    ]
+    # # 3️⃣ Generate/refresh all plots with enhanced versions
+    # plot_functions = [
+    #     plt_suspects_last15_days_bars,
+    #     plt_platform_pie_latest_day,
+    #     plt_status_pie_latest_day,
+    #     plt_top_urls_latest_day,
+    #     plt_country_req_latest_day,
+    #     plt_suspicious_countries_last30d,
+    #     export_category_breakdown_latest_day_all_hours,
+    #     plt_avg_size_trend_latest_day,
+    #     plt_detection_counts_last7d,
+    #     plt_heatmap,
+    #     plt_browser_top10_latest_day,
+    #     plt_size_vs_status_latest_day,
+    #     plt_blocked_ips_latest_day,
+    #     plt_request_methods,
+    #     plt_suspicious_reasons,
+    # ]
 
-    print("Generating visualizations...")
-    for i, plot_fn in enumerate(plot_functions, 1):
-        try:
-            print(f"  [{i}/{len(plot_functions)}] {plot_fn.__name__}", end="... ")
-            plot_fn(Config.DB_PATH)
-            print("✓")
-        except Exception as e:
-            print(f"✗ Failed: {str(e)}")
+    # print("Generating visualizations...")
+    # for i, plot_fn in enumerate(plot_functions, 1):
+    #     try:
+    #         print(f"  [{i}/{len(plot_functions)}] {plot_fn.__name__}", end="... ")
+    #         plot_fn(Config.DB_PATH)
+    #         print("✓")
+    #     except Exception as e:
+    #         print(f"✗ Failed: {str(e)}")
     
-    print("\nVisualization refresh complete.")
-    print(f"Plots saved to: {STATIC_DIR.absolute()}")
+    # print("\nVisualization refresh complete.")
+    # print(f"Plots saved to: {STATIC_DIR.absolute()}")
 
 
 
@@ -2659,7 +2798,7 @@ def refresh_and_detect():
 #         print(f"\n🧮 Total rows in logs: {total_ids}")
 
 
-# In[2]:
+# In[1]:
 
 
 import sqlite3

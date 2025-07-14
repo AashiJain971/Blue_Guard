@@ -148,28 +148,65 @@ def add_column_if_missing(db_path: str,
             print(f"ℹ️ column {colname} already exists – skipped")
 
 
+# @app.post("/client_blocked")
+# def client_blocked():
+#     data   = request.get_json(force=True, silent=True) or {}
+#     ip     = data.get("ip")
+#     ts     = data.get("client_blocked_at")
+#     status = data.get("status", "ok")          # "ok" | "failed"
+
+#     if not ip or not ts:
+#         return {"error": "ip and client_blocked_at required"}, 400
+
+#     # single UPSERT covers both first‑insert + later updates
+#     with sqlite3.connect(Config.DB_PATH) as conn:
+#         conn.execute("""
+#             INSERT INTO blocked_log (
+#                 ip, client_blocked_at, client_block_status,
+#                 detected_at, backend_blocked_at, detection_count
+#             )
+#             VALUES (?, ?, ?, NULL, NULL, 0)
+#             ON CONFLICT(ip) DO UPDATE
+#               SET client_blocked_at  = excluded.client_blocked_at,
+#                   client_block_status = excluded.client_block_status;
+#         """, (ip, ts, status))
+#         conn.commit()
+
+#     return {"ok": True}
+
 @app.post("/client_blocked")
 def client_blocked():
     data   = request.get_json(force=True, silent=True) or {}
     ip     = data.get("ip")
     ts     = data.get("client_blocked_at")
-    status = data.get("status", "ok")          # "ok" | "failed"
+    status = data.get("status", "ok")  # "ok" | "failed"
 
     if not ip or not ts:
         return {"error": "ip and client_blocked_at required"}, 400
 
-    # single UPSERT covers both first‑insert + later updates
     with sqlite3.connect(Config.DB_PATH) as conn:
-        conn.execute("""
-            INSERT INTO blocked_log (
-                ip, client_blocked_at, client_block_status,
-                detected_at, backend_blocked_at, detection_count
-            )
-            VALUES (?, ?, ?, NULL, NULL, 0)
-            ON CONFLICT(ip) DO UPDATE
-              SET client_blocked_at  = excluded.client_blocked_at,
-                  client_block_status = excluded.client_block_status;
-        """, (ip, ts, status))
+        cur = conn.cursor()
+
+        # Insert if IP doesn't exist
+        cur.execute("SELECT client_blocked_at FROM blocked_log WHERE ip = ?", (ip,))
+        result = cur.fetchone()
+
+        if not result:
+            # New IP — insert all values
+            cur.execute("""
+                INSERT INTO blocked_log (
+                    ip, client_blocked_at, client_block_status,
+                    detected_at, backend_blocked_at, detection_count
+                ) VALUES (?, ?, ?, NULL, NULL, 0)
+            """, (ip, ts, status))
+        elif result[0] is None:
+            # Existing IP but client_blocked_at is NULL — update it
+            cur.execute("""
+                UPDATE blocked_log
+                SET client_blocked_at = ?, client_block_status = ?
+                WHERE ip = ?
+            """, (ts, status, ip))
+
         conn.commit()
 
     return {"ok": True}
