@@ -99,11 +99,11 @@ The following features are **planned but not yet fully implemented**:
 
 ---
 
-## 👩‍💻 Author
+👩‍💻 Author
 
-**Aashi Jain**
-🔗 LinkedIn: [https://www.linkedin.com/in/aashi-jain-671a3b321](https://www.linkedin.com/in/aashi-jain-671a3b321)
-💻 GitHub: [https://github.com/AashiJain971](https://github.com/AashiJain971)
+Aashi Jain  
+Connect with me on **[LinkedIn](https://www.linkedin.com/in/aashi-jain-671a3b321)**
+
 
 ---
 
